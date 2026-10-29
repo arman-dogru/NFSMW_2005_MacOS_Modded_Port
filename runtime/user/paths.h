@@ -138,6 +138,10 @@ inline std::filesystem::path HomeCachePath()
 // In portable mode, the data folder in SpeedBreaker's own folder.
 inline std::filesystem::path GetUserPath()
 {
+    // Explicit development/test profile, including on macOS. Does not change
+    // HOME or the installed app's saves; pair with NFSMW_CACHE_DIR.
+    if (const char* dir = std::getenv("NFSMW_USER_DIR"); dir && dir[0])
+        return std::filesystem::absolute(dir);
     if (const portable::Layout& layout = portable::Current(); layout.Active())
         return layout.data;
     return HomeUserPath();
@@ -147,6 +151,8 @@ inline std::filesystem::path GetUserPath()
 // portable mode, the cache folder in SpeedBreaker's own folder.
 inline std::filesystem::path GetCachePath()
 {
+    if (const char* dir = std::getenv("NFSMW_CACHE_DIR"); dir && dir[0])
+        return std::filesystem::absolute(dir);
     if (const portable::Layout& layout = portable::Current(); layout.Active())
         return layout.cache;
     return HomeCachePath();

@@ -1,6 +1,6 @@
 // SpeedBreaker runtime. GPL-3.0-or-later (see COPYING). See paths.h.
-#include <stdafx.h>
 #include "paths.h"
+#include <format>
 
 #ifndef _WIN32
 namespace
@@ -40,6 +40,9 @@ namespace
 
 std::string MigrateUserFolders()
 {
+    // A development profile must never rename the installed app's folders.
+    if (const char* dir = std::getenv("NFSMW_USER_DIR"); dir && dir[0])
+        return {};
 #ifdef _WIN32
     return {};  // no nfsmw-recomp build ever ran on Windows: nothing to rename
 #else

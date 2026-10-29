@@ -31,6 +31,11 @@ else()
 endif()
 
 sb_test(block_ranges_test)
+sb_test(dev_profile_test SOURCES ${RT}/user/paths.cpp)
+if(WIN32)
+    target_sources(dev_profile_test PRIVATE ${RT}/platform/win32/folders.cpp)
+    target_link_libraries(dev_profile_test PRIVATE shell32 ole32)
+endif()
 # Where guest memory and the upload ring go (gpu/memory_plan.h, header only).
 sb_test(memory_plan_test)
 # A discrete GPU's PCIe link for the logs (gpu/pcie_link.h, header only; issue #40).
