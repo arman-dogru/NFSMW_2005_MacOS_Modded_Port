@@ -63,6 +63,18 @@ if(IOS)
 else()
     add_executable(SpeedBreaker ${RUNTIME_SOURCES})
 endif()
+if(APPLE)
+    # Clang 23 can assume a newer ld than the installed Apple linker and emit
+    # objc_msgSendClass$... stubs (ld64 1250+). Apple's ld 1230.1 cannot link
+    # them. Use ordinary class dispatch in our Objective-C++ glue; retain
+    # instance selector stubs and leave C/C++ (including the guest) unchanged.
+    include(CheckOBJCXXCompilerFlag)
+    check_objcxx_compiler_flag("-fno-objc-msgsend-class-selector-stubs" SB_NO_OBJC_CLASS_STUBS)
+    if(SB_NO_OBJC_CLASS_STUBS)
+        target_compile_options(SpeedBreaker PRIVATE
+            $<$<COMPILE_LANGUAGE:OBJCXX>:-fno-objc-msgsend-class-selector-stubs>)
+    endif()
+endif()
 target_include_directories(SpeedBreaker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 find_package(SDL3 REQUIRED CONFIG)
 if(IOS)
