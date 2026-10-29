@@ -31,6 +31,7 @@ else()
 endif()
 
 sb_test(block_ranges_test)
+sb_test(fair_cops_test)
 sb_test(dev_profile_test SOURCES ${RT}/user/paths.cpp)
 if(WIN32)
     target_sources(dev_profile_test PRIVATE ${RT}/platform/win32/folders.cpp)
