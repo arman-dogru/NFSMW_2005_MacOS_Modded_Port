@@ -1,3 +1,13 @@
+> **NFSMW 2005 macOS Modded Port — development fork.** Based on
+> [SpeedBreaker v0.2.0](https://github.com/SpeedBreakerProject/speedbreaker),
+> with native USA Xbox gameplay modifications: race police, FairCops target
+> balancing, configurable Speedbreaker collision mass and unlimited Speedbreaker.
+> **[Build, required game files, launch and settings](docs/MODDED_PORT_SETUP.md).**
+> Minimap visibility, racer-aware spawning/retention, cop-count scaling and the
+> stutter comparison are in progress. No compiled app or game files are supplied.
+> The upstream documentation below describes SpeedBreaker; its downloads do
+> not include this fork's modifications.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/speedbreaker-banner-dark.png">

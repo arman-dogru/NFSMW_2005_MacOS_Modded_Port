@@ -8,6 +8,8 @@ Prepared settings: police enabled, heat 2, maximum density, three-second initial
 spawn delay; FairCops enabled with rebalance every 30 manager updates,
 undersupply rotation every 600 updates and static roadblocks excluded;
 Speedbreaker mass 1000. The normal runtime default mass remains 2.
+Unlimited Speedbreaker is now a saved setting under Settings > Game, enabled
+by default on this branch. Cmd+, opens native Settings on macOS.
 
 The three-second setting makes spawning eligible; road placement and pursuit
 engagement can take additional time. FairCops distributes active pursuit cops,
@@ -29,6 +31,12 @@ Ironwood Estates and the stock Lexus IS300 provide a repeatable reference.
 5. Restart and repeat one activation, then return to the menus. Check for old
    assignments, stuck physics or a transition crash.
 
+For unlimited Speedbreaker: activate while stopped, leave it on at least 30
+seconds, then switch it off and immediately on again without driving to
+recharge. The meter should stay full. Turn Unlimited Speedbreaker off in
+Settings > Game and check normal depletion and the speed requirement, then
+restore On. Its charge behavior and the collision-mass setting are independent.
+
 After this pass: Sprint, Lap Knockout, Speedtrap, Tollbooth, Drag and Career
 events; zero-opponent events; heat changes and roadblocks; destruction;
 Save/Load; and a run with all modifications disabled. These are separate tests,
@@ -38,3 +46,20 @@ Logs stay local in the development profile's `logs/` folder. The directly
 launched shared run also writes `build/diagnostics/user-validation-2026-11-01.log`.
 For feedback, report the race/course, car, approximate race time and what
 happened. No game files or save uploads are needed.
+
+## User playtest, 2026-11-01
+
+Build `0f545a8`, completed Circuit race with a Golf GTI and three AI opponents
+(course not recorded): the user reported substantially stronger Speedbreaker
+impacts, ordinary handling returning afterward, and police clearly following
+AI opponents away from the player. Police and collisions worked through the
+finish. The user also reported occasional stutter/FPS drops. This validates
+the observed behavior in that run, not all modes or a performance comparison.
+
+The local session `2026-11-01_10-06-52.log` independently recorded Golf base
+mass 1328 kg, Speedbreaker override 1328000 kg and zero after deactivation.
+In a captured sample, five active cops were distributed 2/1/1/1 across four
+racers with matching actual targets and zero failed target acquisitions.
+The log contains real long-frame events, but includes loading/menu/pause and
+interactive inspection. No matched unmodified run has been measured yet;
+their cause cannot be attributed to the mods from this session alone.
