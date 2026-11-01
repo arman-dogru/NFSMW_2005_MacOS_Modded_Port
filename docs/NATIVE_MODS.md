@@ -83,8 +83,14 @@ It creates the separate, ad-hoc-signed `build/dev-app/SpeedBreaker (test).app`
 (62 MB, macOS 15.0+; seven libraries and MoltenVK 1.4.2 bundled), without
 changing `/Applications/SpeedBreaker.app`. The first restricted packaging
 attempt failed at `iconutil`; rerunning with desktop access succeeded.
-Launch a packaged test only with `NFSMW_USER_DIR` and `NFSMW_CACHE_DIR` set:
-the package by itself still defaults to the installed app's profile.
+An ordinary `--test` package still defaults to the installed app's profile.
+For isolated Finder launches, also pass
+`--dev-profile="$PWD/build/dev-profile"`. This embeds explicit data/cache/game
+paths through Apple's [LSEnvironment](https://developer.apple.com/documentation/bundleresources/information-property-list/lsenvironment)
+key and captures only the listed gameplay variables present during packaging.
+Direct command-line launches still need their explicit environment or
+`run_dev.sh`; Launch Services applies the embedded environment only to its
+own launches. No saves or game assets are bundled.
 
 ## Isolated development runs
 
@@ -237,3 +243,17 @@ PC sources informed behavior only: [FairCops](https://github.com/arman-dogru/NFS
 [Extra Options](https://github.com/ExOptsTeam/NFSMWExOpts/blob/master/NFSMWExtraOptions/ExtraOptionsStuff.h),
 [SpeedFixer](https://github.com/rng-guy/NFSMWSpeedFixer/blob/master/Source/dllmain.cpp).
 No PC address or object offset was transplanted. No Windows ASI is loaded.
+
+## Shared playtest preparation (2026-11-01)
+
+The native police integration is checkpointed locally as `079db26` and the
+FairCops guest adapter as `54a9bc0`. Five focused tests passed again before
+the shared test. Current installed saves/settings were copied and hash-checked
+in ignored `build/private-backups/pre-user-validation-2026-11-01` (three files).
+The test continues to use the existing development profile, not those originals.
+
+The shared test package is prepared with race police/FairCops enabled, heat 2,
+density 3, initial delay 3 seconds, stock rebalance/rotation intervals and
+roadblock exclusions. Speedbreaker mass is 1000 for this test; the runtime's
+unset default remains the stock 2. Target and mass logs are enabled and verbose
+mapping probes are disabled. See [PLAYTEST.md](PLAYTEST.md) for the test order.

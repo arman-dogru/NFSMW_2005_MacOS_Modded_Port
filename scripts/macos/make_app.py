@@ -57,6 +57,9 @@
 # release: "SpeedBreaker (test).app", its displayed name likewise, and its
 # bundle identifier with ".test" (not with --dmg: a test app is never a
 # download). Its game, saves and settings are the release's (user/paths.h).
+# --dev-profile=<folder> (requires --test): embed isolated data/cache paths and
+# the checkout's game path for Finder launches. Explicit gameplay variables
+# from the allowlist below are captured too. No saves or assets are bundled.
 #
 # --dmg: also <output>/SpeedBreaker-macos.dmg (the app and a shortcut to
 # Applications, to drag it onto) with its .sha256, the release download, and
@@ -82,15 +85,18 @@ OPTIONS = [a for a in sys.argv[1:] if a.startswith('--')]
 DMG = '--dmg' in OPTIONS
 TEST = '--test' in OPTIONS
 MIN_MACOS = next((a.split('=', 1)[1] for a in OPTIONS if a.startswith('--min-macos=')), None)
+DEV_PROFILE = next((a.split('=', 1)[1] for a in OPTIONS if a.startswith('--dev-profile=')), None)
 DMG_TOOL = os.environ.get('DMG_TOOL', '')  # '' (hdiutil, else diskutil), 'hdiutil' or 'diskutil'
 if DMG_TOOL not in ('', 'hdiutil', 'diskutil'):
     raise SystemExit(f'make_app.py: DMG_TOOL={DMG_TOOL}: use hdiutil or diskutil, or leave it unset')
 for a in OPTIONS:
-    if a not in ('--dmg', '--test') and not a.startswith('--min-macos='):
+    if a not in ('--dmg', '--test') and not a.startswith(('--min-macos=', '--dev-profile=')):
         raise SystemExit(f'make_app.py: unknown option {a} (usage: make_app.py [build dir] [output dir] [--dmg] '
-                         f'[--min-macos=<version>] [--test])')
+                         f'[--min-macos=<version>] [--test] [--dev-profile=<folder>])')
 if TEST and DMG:
     raise SystemExit('make_app.py: --test and --dmg: a test app is never a download')
+if DEV_PROFILE is not None and (not TEST or not DEV_PROFILE):
+    raise SystemExit('make_app.py: --dev-profile needs --test and a nonempty folder')
 # The app's name (the bundle's, the displayed one and the menu bar's), bundle
 # identifier and symbols' name; --test's are its own.
 NAME = 'SpeedBreaker (test)' if TEST else 'SpeedBreaker'
@@ -611,6 +617,23 @@ def main():
 
     copy_licenses(resources, {**copied, 'libMoltenVK.dylib': MOLTENVK})
 
+    dev_environment = {}
+    if DEV_PROFILE is not None:
+        profile = os.path.abspath(os.path.expanduser(DEV_PROFILE))
+        dev_environment = {
+            'NFSMW_USER_DIR': os.path.join(profile, 'data'),
+            'NFSMW_CACHE_DIR': os.path.join(profile, 'cache'),
+            'NFSMW_GAME_DIR': os.path.join(ROOT, 'game/files'),
+            'NFSMW_FULLSCREEN': '0',
+        }
+        for key in ('NFSMW_SB_MASS', 'NFSMW_SB_LOG', 'NFSMW_RACE_POLICE',
+                    'NFSMW_POLICE_DENSITY', 'NFSMW_POLICE_START_HEAT', 'NFSMW_POLICE_START_DELAY',
+                    'NFSMW_FAIRCOPS', 'NFSMW_FAIRCOPS_REBALANCE', 'NFSMW_FAIRCOPS_ROTATION',
+                    'NFSMW_FAIRCOPS_SKIP_ROADBLOCKS', 'NFSMW_FAIRCOPS_LOG', 'NFSMW_POLICE_PROBE'):
+            if key in os.environ:
+                dev_environment[key] = os.environ[key]
+        print(f'Development Finder launches use isolated profile: {profile}')
+
     with open(os.path.join(contents, 'Info.plist'), 'wb') as p:
         plistlib.dump({
             'CFBundleDevelopmentRegion': 'en',
@@ -630,6 +653,7 @@ def main():
             'LSApplicationCategoryType': 'public.app-category.racing-games',
             'GCSupportsControllerUserInteraction': True,
             'NSHighResolutionCapable': True,
+            **({'LSEnvironment': dev_environment} if dev_environment else {}),
             'NSHumanReadableCopyright': 'Copyright (C) 2026 project(u) and SpeedBreaker contributors. Free software '
                                         '(GPL-3.0-or-later). Need for Speed and Most Wanted are trademarks of Electronic Arts; '
                                         'SpeedBreaker is not affiliated with Electronic Arts or Valve. It needs your own '
