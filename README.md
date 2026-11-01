@@ -3,8 +3,9 @@
 > with native USA Xbox gameplay modifications: race police, FairCops target
 > balancing, configurable Speedbreaker collision mass and unlimited Speedbreaker.
 > **[Build, required game files, launch and settings](docs/MODDED_PORT_SETUP.md).**
-> Minimap visibility, racer-aware spawning/retention, cop-count scaling and the
-> stutter comparison are in progress. No compiled app or game files are supplied.
+> [Minimap visibility, racer-based spawning/retention and cop-count scaling](docs/POLICE_POPULATION.md)
+> have initial implementations under validation. The stutter comparison is pending.
+> No compiled app or game files are supplied.
 > The upstream documentation below describes SpeedBreaker; its downloads do
 > not include this fork's modifications.
 

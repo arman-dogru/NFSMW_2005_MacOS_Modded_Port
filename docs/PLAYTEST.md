@@ -63,3 +63,11 @@ racers with matching actual targets and zero failed target acquisitions.
 The log contains real long-frame events, but includes loading/menu/pause and
 interactive inspection. No matched unmodified run has been measured yet;
 their cause cannot be attributed to the mods from this session alone.
+
+The user completed a second race on build `69dbb89`, reported unlimited
+Speedbreaker working, and still experienced stutter (possibly around cop
+groups). Session `2026-11-01_10-45-32.log` contains 84 charge readbacks, all 1.0,
+through repeated activation/deactivation. This confirms the sampled full charge;
+it is not a timed 30-second activation test or matched performance comparison.
+The spawning hypothesis remains unproven. Original save/settings hashes were
+checked again after the initial population smoke run and remained unchanged.

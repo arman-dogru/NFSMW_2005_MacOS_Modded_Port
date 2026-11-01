@@ -19,9 +19,11 @@ not used. Preserve the upstream copyright notices, [COPYING](../COPYING),
   immediate replenishment, and no minimum speed. Built, settings tests
   passed, user reported it working; live readbacks remained fully charged
   during repeated use.
-- Pending: show non-pursuit cops on the minimap; racer-aware police placement
-  and distance retention; scale police population up to 2x with four racers;
-  matched performance comparison and investigation of reported stutters.
+- New police extensions: non-pursuit minimap visibility, racer-based single-car
+  placement and distance retention, and budgets up to 2x with four racers.
+  Built with initial runtime readbacks; higher populations, extra minimap art
+  and cleanup regressions still need validation. See [police population](POLICE_POPULATION.md).
+- Pending: matched performance comparison and investigation of reported stutters.
 - Career, remaining race types, long-term physics stability, roadblocks,
   save/load and heat-transition regressions still need wider validation.
 
@@ -105,6 +107,12 @@ dependency was added for these gameplay modifications.
 
 ## Run with separate saves and settings
 
+For this existing, built checkout, double-click
+**`scripts/macos/run_modded.command`** in Finder. It enables race police,
+FairCops and mass 1000, using the isolated development profile below. It
+refuses a second launch while SpeedBreaker is running. Quit normally with
+**Cmd+Q**. A fresh clone must first complete the build steps above.
+
 Back up saves/settings before using any experimental build. The launcher
 below uses `build/dev-profile/data` and `build/dev-profile/cache`, leaving
 the installed application's profile alone. It starts a fresh development
@@ -125,6 +133,11 @@ the saved preference. Mass accepts 0..1,000,000, defaults to stock 2 and
 caps effective collision mass at 1e9 kg; high permitted values are not a
 guarantee of collision-solver stability. See its dedicated document.
 
+The same Game page saves police visibility, racer-based placement, retention
+near other racers and a maximum police population multiplier (1x..2x at four
+racers). These default to On/2x. The existing race-police and FairCops launch
+flags still enable their respective systems. See [settings and limitations](POLICE_POPULATION.md).
+
 For a Finder-launchable isolated package, capture the same mod settings:
 
 ```sh
@@ -141,13 +154,18 @@ packager signs locally and embeds isolated paths for Finder launches.
 An ordinary package without `--dev-profile` uses the installed app's profile;
 avoid that during development. Keep `/Applications/SpeedBreaker.app` unchanged.
 
+If a locally signed Finder launch stalls before opening a window, the isolated
+`run_dev.sh` launch above is the verified fallback. One local launch blocked
+while opening its log directory before reaching gameplay; the cause is not yet
+established. Do not reset the installed app's profile to work around it.
+
 ## Verification and version control
 
 ```sh
-ninja -C build/main -j4 fair_cops_test speedbreaker_mass_test settings_test \
+ninja -C build/main -j4 fair_cops_test police_population_test speedbreaker_mass_test settings_test \
   dev_profile_test paths_test language_test
 ctest --test-dir build/main \
-  -R '^(fair_cops_test|speedbreaker_mass_test|settings_test|dev_profile_test|paths_test|language_test)$' \
+  -R '^(fair_cops_test|police_population_test|speedbreaker_mass_test|settings_test|dev_profile_test|paths_test|language_test)$' \
   --output-on-failure
 ```
 

@@ -4,6 +4,7 @@
 #include <region/region.h>
 #include <report/report.h>
 #include "police_probe.h"
+#include "police_population.h"
 
 extern "C" PPC_FUNC(__imp__sub_820F2320);
 extern "C" PPC_FUNC(__imp__sub_820EB970);
@@ -13,6 +14,10 @@ namespace
 {
     const bool s_enabled = [] {
         const char* v = std::getenv("NFSMW_POLICE_PROBE");
+        return v && std::strcmp(v, "1") == 0;
+    }();
+    const bool s_spawnLog = [] {
+        const char* v = std::getenv("NFSMW_POLICE_SPAWN_LOG");
         return v && std::strcmp(v, "1") == 0;
     }();
 
@@ -93,13 +98,21 @@ namespace
 PPC_FUNC(sub_820EB970)
 {
     const uint32_t manager = ctx.r3.u32, model = ctx.r4.u32;
+    const bool timing = (s_enabled || s_spawnLog) && region::Current() == region::Release::Usa;
+    const double started = timing ? report::SessionSeconds() : 0;
     __imp__sub_820EB970(ctx, base);
-    if (!s_enabled || region::Current() != region::Release::Usa) return;
+    if (!timing) return;
     static double last = -10;
+    static uint32_t lastResult = 0;
     const double now = report::SessionSeconds();
     if (!ctx.r3.u32 && now - last < 5) return;
+    if (ctx.r3.u32 == lastResult && now - last < 1) return;
     last = now;
-    fprintf(stderr, "[police-probe] create model=%.32s result=%08X manager_count=%u\n",
+    lastResult = ctx.r3.u32;
+    static unsigned lines = 0;
+    if (lines++ >= 128) return;
+    fprintf(stderr, "[police-spawn] begin=%.3f duration_ms=%.3f model=%.32s result=%08X manager_count=%u\n",
+        started, (now - started) * 1000,
         model ? reinterpret_cast<const char*>(base + model) : "(null)", ctx.r3.u32, Read32(base, manager + 0xD0));
 }
 
@@ -133,10 +146,12 @@ void game::police_probe::ObserveCanSpawn(uint8_t* base, uint32_t managerInterfac
 }
 
 // Observe after the complete task. At entry r3 is the manager's +8 interface.
-// This wrapper performs no gameplay writes and creates no guest objects.
+// Population scaling is scoped to the original task; the optional probe
+// itself only observes the result.
 PPC_FUNC(sub_820F2320)
 {
     const uint32_t manager = ctx.r3.u32 - 8;
+    game::police_population::ScopedManagerBudget budget(base, manager);
     __imp__sub_820F2320(ctx, base);
     if (s_enabled && region::Current() == region::Release::Usa)
         Observe(base, manager);

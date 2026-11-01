@@ -67,4 +67,18 @@ int main()
     assert(b.Tick(zero, racers).empty());
     std::vector<Id> overflow(kMaxCops + 1, 100);
     assert(b.Tick(overflow, racers).empty());
+
+    // New cars can keep their spawn anchor, while Tick still validates and
+    // balances seeds (including a racer that left before the next update).
+    b.Reset();
+    assert(b.Seed(100, 30));
+    assert(!b.Seed(100, 20)); // existing assignments are stable
+    assert(!b.Seed(0, 20) && !b.Seed(101, 0));
+    assert(b.Tick(cop, racers)[0].racer == 30);
+    assert(b.Seed(101, 30));
+    const std::array<Id, 2> twoCops{100, 101};
+    Check(b.Tick(twoCops, racers), twoCops, racers);
+    assert(b.Seed(102, 99)); // disappeared racer: discarded and reassigned
+    const std::array<Id, 3> threeCops{100, 101, 102};
+    Check(b.Tick(threeCops, racers), threeCops, racers);
 }

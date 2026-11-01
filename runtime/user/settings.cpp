@@ -453,6 +453,22 @@ namespace settings
               .table = "game", .key = "unlimited_speedbreaker", .label = "Unlimited Speedbreaker",
               .description = "Full charge immediately, no drain, and activation at any speed. Toggle off normally. USA game only.",
               .env = "NFSMW_SB_UNLIMITED", .defaultValue = 1 },
+            { .id = Id::ShowAllPolice, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
+              .table = "game", .key = "show_all_police", .label = "Show All Police",
+              .description = "Show spawned patrol and pursuit cops on the minimap, including cops chasing other racers. USA game only.",
+              .env = "NFSMW_SHOW_ALL_POLICE", .defaultValue = 1 },
+            { .id = Id::RacerPoliceSpawns, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
+              .table = "game", .key = "racer_police_spawns", .label = "Police Spawn Near Racers",
+              .description = "Distribute new pursuit cars around racers with fewer cops during modded races. USA game only.",
+              .env = "NFSMW_RACER_POLICE_SPAWNS", .defaultValue = 1 },
+            { .id = Id::KeepPoliceNearRacers, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
+              .table = "game", .key = "keep_police_near_racers", .label = "Keep Police Near Racers",
+              .description = "Keep cops near any live racer even when far from you. Heat, pursuit ending and other cleanup rules still apply. USA game only.",
+              .env = "NFSMW_KEEP_POLICE_NEAR_RACERS", .defaultValue = 1 },
+            { .id = Id::PolicePopulationScale, .category = Category::Game, .type = Type::Float, .apply = Apply::Live,
+              .table = "game", .key = "police_population_scale", .label = "Police Population at Four Racers",
+              .description = "Maximum police budget with four racers including you, from 1x to 2x. Scales gradually from one racer; game capacity still applies. USA game only.",
+              .env = "NFSMW_POLICE_POPULATION_SCALE", .defaultValue = 2, .min = 1, .max = 2, .step = 0.1 },
         };
         static_assert(std::size(kOptions) == kCount, "one row per settings::Id");
 

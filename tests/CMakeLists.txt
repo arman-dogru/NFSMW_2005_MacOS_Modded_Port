@@ -32,6 +32,7 @@ endif()
 
 sb_test(block_ranges_test)
 sb_test(fair_cops_test)
+sb_test(police_population_test)
 sb_test(speedbreaker_mass_test)
 sb_test(dev_profile_test SOURCES ${RT}/user/paths.cpp)
 if(WIN32)

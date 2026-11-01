@@ -626,10 +626,11 @@ def main():
             'NFSMW_GAME_DIR': os.path.join(ROOT, 'game/files'),
             'NFSMW_FULLSCREEN': '0',
         }
-        for key in ('NFSMW_SB_MASS', 'NFSMW_SB_LOG', 'NFSMW_SB_UNLIMITED', 'NFSMW_RACE_POLICE',
+        for key in ('NFSMW_SB_MASS', 'NFSMW_SB_LOG', 'NFSMW_SB_UNLIMITED', 'NFSMW_SHOW_ALL_POLICE', 'NFSMW_RACE_POLICE',
+                    'NFSMW_RACER_POLICE_SPAWNS', 'NFSMW_KEEP_POLICE_NEAR_RACERS', 'NFSMW_POLICE_POPULATION_SCALE',
                     'NFSMW_POLICE_DENSITY', 'NFSMW_POLICE_START_HEAT', 'NFSMW_POLICE_START_DELAY',
                     'NFSMW_FAIRCOPS', 'NFSMW_FAIRCOPS_REBALANCE', 'NFSMW_FAIRCOPS_ROTATION',
-                    'NFSMW_FAIRCOPS_SKIP_ROADBLOCKS', 'NFSMW_FAIRCOPS_LOG', 'NFSMW_POLICE_PROBE'):
+                    'NFSMW_FAIRCOPS_SKIP_ROADBLOCKS', 'NFSMW_FAIRCOPS_LOG', 'NFSMW_POLICE_PROBE', 'NFSMW_POLICE_SPAWN_LOG'):
             if key in os.environ:
                 dev_environment[key] = os.environ[key]
         print(f'Development Finder launches use isolated profile: {profile}')

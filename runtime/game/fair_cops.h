@@ -12,6 +12,7 @@ namespace game::fair_cops
 {
     // USA guest adapter; a no-op unless NFSMW_FAIRCOPS=1.
     void AfterPursuitUpdate(uint8_t* base, uint32_t manager);
+    void PreferSpawnTarget(uint32_t copVehicle, uint32_t racerVehicle);
 
     using Id = uint64_t;
     inline constexpr size_t kMaxCops = 96, kMaxRacers = 16;
@@ -105,6 +106,19 @@ namespace game::fair_cops
         void Reset() { *this = {}; }
 
         std::span<const Assignment> Current() const { return {assignments.data(), count}; }
+
+        // Preserve a new cop's chosen spawn anchor when the live population
+        // is next rebuilt. Existing assignments stay stable; Tick still
+        // validates membership and balances any uneven seeded population.
+        bool Seed(Id cop, Id racer)
+        {
+            if (!cop || !racer || count == assignments.size() ||
+                std::any_of(assignments.begin(), assignments.begin() + count,
+                    [cop](Assignment a) { return a.cop == cop; })) return false;
+            assignments[count++] = {cop, racer};
+            sinceRebalance = 600;
+            return true;
+        }
 
         // Once per simulation update, after the game's ordinary pursuit update.
         // The adapter must revalidate every assignment before acquiring a target.

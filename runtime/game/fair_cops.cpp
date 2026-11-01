@@ -115,6 +115,12 @@ namespace
     uint64_t s_acquires = 0, s_failed = 0;
 }
 
+void PreferSpawnTarget(uint32_t copVehicle, uint32_t racerVehicle)
+{
+    if (!Enabled()) return;
+    s_balancer.Seed(Identity(copVehicle), Identity(racerVehicle));
+}
+
 void AfterPursuitUpdate(uint8_t* base, uint32_t manager)
 {
     if (!Enabled()) return;
