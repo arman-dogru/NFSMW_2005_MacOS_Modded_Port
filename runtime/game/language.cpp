@@ -44,6 +44,7 @@
 #include <stdafx.h>
 #include <region/region.h>
 #include "language.h"
+#include "race_police.h"
 
 #include <kernel/function.h>
 #include <user/paths.h>
@@ -204,5 +205,8 @@ SB_HOOK(sub_82148818)
         if (const uint32_t r5 = SpeechIndexTo(lr - begin + kSpeechPickBegin, ctx.r4.u32, ctx.r5.u32, record); r5 != ctx.r5.u32)
             ctx.r5.u64 = r5;
     }
+    const uint32_t key = ctx.r4.u32, index = ctx.r5.u32;
     SB_ORIGINAL(sub_82148818)(ctx, base);
+    if (const uint32_t value = game::race_police::Attribute(base, key, index, ctx.r3.u32); value != ctx.r3.u32)
+        ctx.r3.u64 = value;
 }
