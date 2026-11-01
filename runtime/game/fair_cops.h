@@ -1,7 +1,7 @@
 // SpeedBreaker. GPL-3.0-or-later (see COPYING).
 // Native assignment policy for the FairCops port. No guest memory access.
-// The eventual adapter must pass live, eligible cops/racers, exclude roadblock
-// holders, and use lifetime-aware IDs (a recycled guest pointer alone is not ID).
+// The adapter passes live, eligible cops/racers, excludes roadblock holders,
+// and uses lifetime-aware IDs (a recycled guest pointer alone is not ID).
 #pragma once
 #include <algorithm>
 #include <array>
@@ -10,6 +10,9 @@
 
 namespace game::fair_cops
 {
+    // USA guest adapter; a no-op unless NFSMW_FAIRCOPS=1.
+    void AfterPursuitUpdate(uint8_t* base, uint32_t manager);
+
     using Id = uint64_t;
     inline constexpr size_t kMaxCops = 96, kMaxRacers = 16;
 
