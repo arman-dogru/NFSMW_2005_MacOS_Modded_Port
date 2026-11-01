@@ -135,6 +135,7 @@ namespace settings
         PerformanceOverlay,
         // Game (the [game] table)
         GameLanguage,  // game/language.cpp: the game's language, game::language's ids (English = 0)
+        UnlimitedSpeedbreaker,
         Count
     };
     constexpr size_t kCount = size_t(Id::Count);

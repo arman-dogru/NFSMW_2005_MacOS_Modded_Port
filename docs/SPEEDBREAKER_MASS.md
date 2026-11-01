@@ -17,7 +17,8 @@ game's collision solver. Start below the extremes.
 
 This setting changes only the verified USA Speedbreaker activation call. It
 does not change the vehicle's base mass, engine, suspension, recharge, minimum
-activation speed or time scale. The original deactivation clears the override.
+activation speed or time scale. The separate [Unlimited Speedbreaker](SPEEDBREAKER_UNLIMITED.md)
+setting controls charge and speed eligibility. The original deactivation clears the override.
 PAL is unsupported and keeps its original wrapper.
 
 ## Xbox evidence

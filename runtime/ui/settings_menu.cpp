@@ -97,8 +97,6 @@ namespace ui
         {
             if (c == Category::Wheel)
                 return hid::wheel::Found();
-            if (c == Category::Game)  // its one row, Language, isn't shown on iPhone and iPad
-                return !settings::Info(Id::GameLanguage).hidden;
 #if defined(__APPLE__) && TARGET_OS_IOS
             if (c == Category::Controls)
                 return SDL_HasKeyboard();

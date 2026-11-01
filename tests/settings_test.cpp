@@ -127,6 +127,24 @@ int main(int argc, char** argv)
         CHECK(text.find("mipmaps = false") != std::string::npos, "the file holds the stored mipmaps, not the override");
     }
 
+    // Unlimited Speedbreaker is a live, saved gameplay choice. The baseline
+    // override may disable it for one run without replacing that choice.
+    CHECK(settings::GetBool(Id::UnlimitedSpeedbreaker), "unlimited by default");
+    CHECK(settings::Set(Id::UnlimitedSpeedbreaker, 0) == settings::SetResult::Applied,
+        "disable immediately");
+    CHECK(!settings::GetBool(Id::UnlimitedSpeedbreaker), "disabled in this run");
+    CHECK(settings::Save() && settings::Load(file), "save/reload disabled");
+    CHECK(!settings::GetBool(Id::UnlimitedSpeedbreaker), "disabled survives reload");
+    settings::Set(Id::UnlimitedSpeedbreaker, 1);
+    CHECK(settings::Save(), "save enabled");
+    SetEnv("NFSMW_SB_UNLIMITED", "0");
+    CHECK(settings::Load(file) && !settings::GetBool(Id::UnlimitedSpeedbreaker), "baseline override");
+    CHECK(settings::GetStoredValue(Id::UnlimitedSpeedbreaker) == 1, "saved choice stays enabled");
+    CHECK(settings::Save(), "save with baseline override");
+    SetEnv("NFSMW_SB_UNLIMITED", nullptr);
+    CHECK(settings::Load(file) && settings::GetBool(Id::UnlimitedSpeedbreaker),
+        "enabled returns after the baseline override is removed");
+
     settings::Unsubscribe(listener);
     std::filesystem::remove_all(dir, ec);
     printf("%s (%d failure%s)\n", g_failures ? "FAILED" : "all passed", g_failures, g_failures == 1 ? "" : "s");

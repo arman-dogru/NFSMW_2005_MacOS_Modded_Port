@@ -161,12 +161,15 @@ values at `0x828FB8D4` were considered but have no confirmed readers and are
 
 ## Current gameplay configuration
 
-All additions are opt-in except the stock-equivalent Speedbreaker multiplier.
-Set variables before launching `bash scripts/macos/run_dev.sh`.
+Unlimited Speedbreaker is enabled by default on this modification branch and
+saved in Settings > Game. Other additions are opt-in, and the default collision
+mass multiplier is stock-equivalent. Set variables before launching
+`bash scripts/macos/run_dev.sh`.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `NFSMW_SB_MASS` | `2` | Activation-only collision mass multiplier, 0..1,000,000. Effective mass capped at 1e9 kg. |
+| `NFSMW_SB_UNLIMITED` | saved, default `1` | Full charge, no drain or minimum speed; live Settings > Game switch. See [mapping and tests](SPEEDBREAKER_UNLIMITED.md). |
 | `NFSMW_SB_LOG` | `0` | Bounded activation/deactivation and base-mass readback. |
 | `NFSMW_RACE_POLICE` | `0` | Race police eligibility, attributes and CanSpawn overrides; positive Circuit/Sprint spawning. |
 | `NFSMW_POLICE_DENSITY` | `3` | Minimum density enum 1..3 when race police enabled. |

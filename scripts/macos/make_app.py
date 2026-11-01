@@ -626,7 +626,7 @@ def main():
             'NFSMW_GAME_DIR': os.path.join(ROOT, 'game/files'),
             'NFSMW_FULLSCREEN': '0',
         }
-        for key in ('NFSMW_SB_MASS', 'NFSMW_SB_LOG', 'NFSMW_RACE_POLICE',
+        for key in ('NFSMW_SB_MASS', 'NFSMW_SB_LOG', 'NFSMW_SB_UNLIMITED', 'NFSMW_RACE_POLICE',
                     'NFSMW_POLICE_DENSITY', 'NFSMW_POLICE_START_HEAT', 'NFSMW_POLICE_START_DELAY',
                     'NFSMW_FAIRCOPS', 'NFSMW_FAIRCOPS_REBALANCE', 'NFSMW_FAIRCOPS_ROTATION',
                     'NFSMW_FAIRCOPS_SKIP_ROADBLOCKS', 'NFSMW_FAIRCOPS_LOG', 'NFSMW_POLICE_PROBE'):

@@ -449,6 +449,10 @@ namespace settings
               .table = "game", .key = "language", .label = "Language",
               .description = "The language of the game's menus and race text: English (the USA disc's), or French, German, Italian, Spanish, Dutch, Swedish, Danish, Polish or Finnish, from the same disc's files. The movies and the speech stay in English, as the disc has them. The European (PAL) Spanish disc has Spanish movies and speech, and starts in Spanish; another language there keeps them in Spanish.",
               .env = "NFSMW_LANGUAGE", .defaultValue = double(game::language::kEnglish), .entries = kLanguageEntries },
+            { .id = Id::UnlimitedSpeedbreaker, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
+              .table = "game", .key = "unlimited_speedbreaker", .label = "Unlimited Speedbreaker",
+              .description = "Full charge immediately, no drain, and activation at any speed. Toggle off normally. USA game only.",
+              .env = "NFSMW_SB_UNLIMITED", .defaultValue = 1 },
         };
         static_assert(std::size(kOptions) == kCount, "one row per settings::Id");
 
