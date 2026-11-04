@@ -12,7 +12,8 @@ export NFSMW_POLICE_START_HEAT="${NFSMW_POLICE_START_HEAT:-2}"
 export NFSMW_POLICE_START_DELAY="${NFSMW_POLICE_START_DELAY:-3}"
 export NFSMW_FAIRCOPS="${NFSMW_FAIRCOPS:-1}"
 export NFSMW_SB_MASS="${NFSMW_SB_MASS:-1000}"
-# Live Game settings (including unlimited Speedbreaker) keep saved choices.
+# Live Game settings (unlimited Speedbreaker and all boss rewards, default On)
+# keep saved choices. run_dev.sh executes build/main/runtime/SpeedBreaker.
 # Verbose diagnostics are off unless explicitly supplied by the developer.
 echo "Starting the modded game..."
 exec /bin/bash "$sb_root/scripts/macos/run_dev.sh" "$@"

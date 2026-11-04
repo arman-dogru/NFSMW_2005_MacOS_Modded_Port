@@ -24,6 +24,9 @@ not used. Preserve the upstream copyright notices, [COPYING](../COPYING),
   Built with initial runtime readbacks; higher populations, extra minimap art
   and cleanup regressions still need validation. See [police population](POLICE_POPULATION.md).
 - Pending: matched performance comparison and investigation of reported stutters.
+- Boss rewards: [All Boss Rewards](BOSS_REWARDS.md) defaults to On, allowing all
+  six cards. Native build and original guest-routine integration tests cover
+  the limits, labels and reward paths; a live boss defeat still needs checking.
 - Career, remaining race types, long-term physics stability, roadblocks,
   save/load and heat-transition regressions still need wider validation.
 
@@ -137,6 +140,9 @@ The same Game page saves police visibility, racer-based placement, retention
 near other racers and a maximum police population multiplier (1x..2x at four
 racers). These default to On/2x. The existing race-police and FairCops launch
 flags still enable their respective systems. See [settings and limitations](POLICE_POPULATION.md).
+
+**All Boss Rewards** on the same page lets you pick all six cards after a boss.
+It defaults to On and is included in the updated run command's executable.
 
 For a Finder-launchable isolated package, capture the same mod settings:
 

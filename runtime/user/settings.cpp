@@ -469,6 +469,10 @@ namespace settings
               .table = "game", .key = "police_population_scale", .label = "Police Population at Four Racers",
               .description = "Maximum police budget with four racers including you, from 1x to 2x. Scales gradually from one racer; game capacity still applies. USA game only.",
               .env = "NFSMW_POLICE_POPULATION_SCALE", .defaultValue = 2, .min = 1, .max = 2, .step = 0.1 },
+            { .id = Id::AllBossRewards, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
+              .table = "game", .key = "all_boss_rewards", .label = "All Boss Rewards",
+              .description = "Pick all six reward cards after defeating a Blacklist rival. Each card is awarded once. USA game only.",
+              .env = "NFSMW_BOSS_REWARDS", .defaultValue = 1 },
         };
         static_assert(std::size(kOptions) == kCount, "one row per settings::Id");
 

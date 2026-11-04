@@ -130,6 +130,9 @@ int main(int argc, char** argv)
     // Unlimited Speedbreaker is a live, saved gameplay choice. The baseline
     // override may disable it for one run without replacing that choice.
     CHECK(settings::GetBool(Id::UnlimitedSpeedbreaker), "unlimited by default");
+    CHECK(settings::GetBool(Id::AllBossRewards), "all boss rewards by default");
+    CHECK(settings::Find("game", "all_boss_rewards")->id == Id::AllBossRewards,
+        "boss rewards saved Game setting is registered");
     CHECK(settings::Set(Id::UnlimitedSpeedbreaker, 0) == settings::SetResult::Applied,
         "disable immediately");
     CHECK(!settings::GetBool(Id::UnlimitedSpeedbreaker), "disabled in this run");

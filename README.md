@@ -2,6 +2,7 @@
 > [SpeedBreaker v0.2.0](https://github.com/SpeedBreakerProject/speedbreaker),
 > with native USA Xbox gameplay modifications: race police, FairCops target
 > balancing, configurable Speedbreaker collision mass and unlimited Speedbreaker.
+> [All six boss reward cards](docs/BOSS_REWARDS.md) are selectable by default.
 > **[Build, required game files, launch and settings](docs/MODDED_PORT_SETUP.md).**
 > [Minimap visibility, racer-based spawning/retention and cop-count scaling](docs/POLICE_POPULATION.md)
 > have initial implementations under validation. The stutter comparison is pending.

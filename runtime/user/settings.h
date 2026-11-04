@@ -140,6 +140,7 @@ namespace settings
         RacerPoliceSpawns,
         KeepPoliceNearRacers,
         PolicePopulationScale,
+        AllBossRewards,
         Count
     };
     constexpr size_t kCount = size_t(Id::Count);

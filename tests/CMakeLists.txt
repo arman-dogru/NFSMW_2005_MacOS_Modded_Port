@@ -32,6 +32,7 @@ endif()
 
 sb_test(block_ranges_test)
 sb_test(fair_cops_test)
+sb_test(boss_rewards_test)
 sb_test(police_population_test)
 sb_test(speedbreaker_mass_test)
 sb_test(dev_profile_test SOURCES ${RT}/user/paths.cpp)
@@ -220,6 +221,12 @@ sb_test(cursor_idle_test ARGS ${RT}/ui/ui.cpp)
 sb_test(report_zip_test SOURCES ${RT}/report/zip.cpp ARGS ${CMAKE_CURRENT_BINARY_DIR}/report_zip_out)
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
+    if(UNIX AND NOT IOS AND EXISTS "${ROOT}/ppc/ppc_recomp.164.cpp")
+        # Requires a built SpeedBreaker object. Extract original guest bodies
+        # locally into ignored build/; no generated game code is published.
+        add_test(NAME boss_rewards_guest_test COMMAND Python3::Interpreter
+            ${CMAKE_CURRENT_SOURCE_DIR}/boss_rewards_guest_test.py ${CMAKE_BINARY_DIR})
+    endif()
     # What report_zip_test wrote, read back with independent code.
     add_test(NAME report_zip_check COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/report_zip_check.py
         ${CMAKE_CURRENT_BINARY_DIR}/report_zip_out)
