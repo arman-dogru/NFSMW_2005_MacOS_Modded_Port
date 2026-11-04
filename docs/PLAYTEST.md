@@ -4,12 +4,16 @@ Use `build/faircops-test/SpeedBreaker (test).app`. This package uses
 `build/dev-profile/data` and `build/dev-profile/cache`. The installed app,
 original saves and installed game files are left in place.
 
-Prepared settings: police enabled, heat 2, maximum density, three-second initial
+Prepared settings: police enabled, original heat behavior, maximum density, three-second initial
 spawn delay; FairCops enabled with rebalance every 30 manager updates,
 undersupply rotation every 600 updates and static roadblocks excluded;
 Speedbreaker mass 1000. The normal runtime default mass remains 2.
 Unlimited Speedbreaker is now a saved setting under Settings > Game, enabled
 by default on this branch. Cmd+, opens native Settings on macOS.
+
+With four racers (including the human), the ground-cop budget multiplier defaults
+to 2x. This does not multiply heat. Earlier November 1 tests used an explicit
+heat-2 development override; it was removed from the implementation on November 4.
 
 The three-second setting makes spawning eligible; road placement and pursuit
 engagement can take additional time. FairCops distributes active pursuit cops,

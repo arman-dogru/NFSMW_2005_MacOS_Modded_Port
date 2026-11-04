@@ -123,7 +123,7 @@ profile; copying an existing save into it is optional and should be done
 while the game is closed.
 
 ```sh
-NFSMW_RACE_POLICE=1 NFSMW_POLICE_START_HEAT=2 \
+NFSMW_RACE_POLICE=1 \
 NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 \
 bash scripts/macos/run_dev.sh
 ```
@@ -140,6 +140,8 @@ The same Game page saves police visibility, racer-based placement, retention
 near other racers and a maximum police population multiplier (1x..2x at four
 racers). These default to On/2x. The existing race-police and FairCops launch
 flags still enable their respective systems. See [settings and limitations](POLICE_POPULATION.md).
+The multiplier applies to ground-cop counts. Heat uses the game's normal rules;
+the earlier development heat override has been removed.
 
 **All Boss Rewards** on the same page lets you pick all six cards after a boss.
 It defaults to On and is included in the updated run command's executable.
@@ -147,7 +149,7 @@ It defaults to On and is included in the updated run command's executable.
 For a Finder-launchable isolated package, capture the same mod settings:
 
 ```sh
-NFSMW_RACE_POLICE=1 NFSMW_POLICE_START_HEAT=2 \
+NFSMW_RACE_POLICE=1 \
 NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 \
 python3 scripts/macos/make_app.py build/main build/faircops-test \
   --test --dev-profile="$PWD/build/dev-profile"

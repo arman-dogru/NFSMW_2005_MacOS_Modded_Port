@@ -151,8 +151,8 @@ fields and pointers are big-endian. Native pointers never enter guest fields.
 | Active race status | pointer `0x82A2CB18`, state +`0x1A28`, parameters +`0x1A30` | Original race logic and live Circuit state 1 with valid parameters. Other modes require validation. |
 | CopsInRace getter | `0x823380E0`; key `0x3918E889` | Local flag `0x800` or VLT byte fallback. |
 | CopDensity getter | `0x8233A738`; key `0xDBC08D32` | Local +`0x2A` or VLT percent, mapped to enum 0..3. |
-| ForceHeatLevel getter | `0x823385E0`; key `0xE4211F4F` | VLT integer converted to floating return. Higher scripted values preserved. |
-| Raw attribute lookup | `0x82148818` | Some loader reads bypass getters. Composed with existing language hook, returns private guest values for these three keys only; original VLT and shared fallback zero are unchanged. |
+| ForceHeatLevel getter | `0x823385E0`; key `0xE4211F4F` | Stock generated getter; native heat override removed 2026-11-04. |
+| Raw attribute lookup | `0x82148818` | Some loader reads bypass getters. Composed with existing language hook, returns private values for CopsInRace and CopDensity only; heat passes through. |
 
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
@@ -173,7 +173,6 @@ mass multiplier is stock-equivalent. Set variables before launching
 | `NFSMW_SB_LOG` | `0` | Bounded activation/deactivation and base-mass readback. |
 | `NFSMW_RACE_POLICE` | `0` | Race police eligibility, attributes and CanSpawn overrides; positive Circuit/Sprint spawning. |
 | `NFSMW_POLICE_DENSITY` | `3` | Minimum density enum 1..3 when race police enabled. |
-| `NFSMW_POLICE_START_HEAT` | `1` | Minimum requested race heat 1..5; higher scripted heat preserved. |
 | `NFSMW_POLICE_START_DELAY` | `3` | Cap the initial race spawn cooldown, 0..60 seconds. Loading and cinematic gates still apply. |
 | `NFSMW_FAIRCOPS` | `0` | Native adapter; requires eligible active police and at least two live racers. |
 | `NFSMW_FAIRCOPS_REBALANCE` | `30` | Manager updates between rebalances, 1..600. |
@@ -181,6 +180,11 @@ mass multiplier is stock-equivalent. Set variables before launching
 | `NFSMW_FAIRCOPS_SKIP_ROADBLOCKS` | `1` | Exclude static roadblock holders. |
 | `NFSMW_FAIRCOPS_LOG` | `0` | Five-second assignment/actual target coverage and native timing diagnostics. |
 | `NFSMW_POLICE_PROBE` | `0` | Bounded read-only layout/spawn diagnostics around shared feature hooks. |
+
+Heat uses the original game rules. The earlier `NFSMW_POLICE_START_HEAT`
+development override and its getter/raw-attribute modifications were removed
+on 2026-11-04. The separate police count option defaults to a maximum 2x
+ground-cop budget at four racers, including the human; it never scales heat.
 
 The FairCops policy is header-only, uses fixed arrays (96 cops/16 racers),
 keeps valid assignments, moves only what balancing needs, and rotates coverage

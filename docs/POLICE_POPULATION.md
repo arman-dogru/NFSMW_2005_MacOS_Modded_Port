@@ -13,7 +13,7 @@ Native Settings > Game saves these options and applies them live:
 | Show All Police | `show_all_police` | On | `NFSMW_SHOW_ALL_POLICE=0/1` |
 | Police Spawn Near Racers | `racer_police_spawns` | On | `NFSMW_RACER_POLICE_SPAWNS=0/1` |
 | Keep Police Near Racers | `keep_police_near_racers` | On | `NFSMW_KEEP_POLICE_NEAR_RACERS=0/1` |
-| Police Population at Four Racers | `police_population_scale` | 2 | `NFSMW_POLICE_POPULATION_SCALE=1..2` |
+| Police Count at Four Racers | `police_population_scale` | 2 | `NFSMW_POLICE_POPULATION_SCALE=1..2` |
 
 Spawning, retention and scaling require an initialized active race and
 `NFSMW_RACE_POLICE=1` or `NFSMW_FAIRCOPS=1`. Minimap visibility also works outside
@@ -25,6 +25,10 @@ integer budgets round down. A five-car budget becomes 5, 6, 8, 10. More than
 four racers still receive at most 2x. Zero/unknown budgets and helicopter
 counts are not increased. The original 64-simable allocation ceiling remains;
 budgets are requests, not guaranteed populations.
+
+**This doubles ground-cop budgets, not heat.** Heat values, progression and
+Career/event heat limits follow the original game. The old development
+`NFSMW_POLICE_START_HEAT` override was removed on 2026-11-04 and is ignored.
 
 New single pursuit cars choose a live racer with the fewest actual active cop
 targets, excluding static roadblock holders. The original road finder receives

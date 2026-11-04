@@ -11,7 +11,6 @@
 
 extern "C" PPC_FUNC(__imp__sub_823380E0);
 extern "C" PPC_FUNC(__imp__sub_8233A738);
-extern "C" PPC_FUNC(__imp__sub_823385E0);
 extern "C" PPC_FUNC(__imp__sub_820F18F8);
 extern "C" PPC_FUNC(__imp__sub_820F21A8);
 extern "C" PPC_FUNC(__imp__sub_820EB6A8);
@@ -38,7 +37,6 @@ namespace
         return value;
     }
     const unsigned s_density = Option("NFSMW_POLICE_DENSITY", 3, 3);
-    const unsigned s_heat = Option("NFSMW_POLICE_START_HEAT", 1, 5);
     const unsigned s_delay = Option("NFSMW_POLICE_START_DELAY", 3, 60, true);
 
     bool Enabled() { return s_enabled && region::Current() == region::Release::Usa; }
@@ -77,14 +75,12 @@ namespace
         // or its shared fallback-zero object. The runtime heap is initialized
         // before any guest attribute call. Function-local static is thread safe.
         static const uint32_t values = [] {
-            auto* p = static_cast<uint8_t*>(g_userHeap.Alloc(16));
+            auto* p = static_cast<uint8_t*>(g_userHeap.Alloc(8));
             if (!p) return uint32_t(0);
-            std::memset(p, 0, 16);
+            std::memset(p, 0, 8);
             p[0] = 1; // CopsInRace is a byte attribute, not a big-endian int.
             const uint32_t density = ByteSwap(s_density == 3 ? 100u : s_density == 2 ? 66u : 33u);
-            const uint32_t heat = ByteSwap(s_heat);
             std::memcpy(p + 4, &density, 4);
-            std::memcpy(p + 8, &heat, 4);
             return g_memory.MapVirtual(p);
         }();
         return values ? values + field : 0;
@@ -141,17 +137,17 @@ PPC_FUNC(sub_820F21A8)
 }
 
 // Raw attribute readers in the loader and race initialization do not all pass
-// through GRaceParameters getters. Cover the same three independently verified
-// keys at the common lookup; leave every other attribute and array index alone.
+// through GRaceParameters getters. Cover only the police flag and density;
+// heat attributes and their original race/Career behavior pass through.
 uint32_t game::race_police::Attribute(const uint8_t* base, uint32_t key, uint32_t index, uint32_t original)
 {
-    if (!Enabled() || index || (key != 0x3918E889 && key != 0xDBC08D32 && key != 0xE4211F4F)) return original;
-    const unsigned field = key == 0x3918E889 ? 0 : key == 0xDBC08D32 ? 4 : 8;
+    if (!Enabled() || index || (key != 0x3918E889 && key != 0xDBC08D32)) return original;
+    const unsigned field = key == 0x3918E889 ? 0 : 4;
     if (field && original)
     {
         uint32_t n;
         std::memcpy(&n, base + original, 4);
-        if (int32_t(ByteSwap(n)) >= int32_t(field == 4 ? (s_density == 3 ? 100u : s_density == 2 ? 66u : 33u) : s_heat)) return original;
+        if (int32_t(ByteSwap(n)) >= int32_t(s_density == 3 ? 100u : s_density == 2 ? 66u : 33u)) return original;
     }
     const uint32_t value = AttributeValue(field);
     return value ? value : original;
@@ -176,16 +172,5 @@ PPC_FUNC(sub_8233A738)
     {
         Log("CopDensity", ctx.r3.u32, std::max(ctx.r3.u32, s_density));
         ctx.r3.u64 = std::max(ctx.r3.u32, s_density);
-    }
-}
-
-// ForceHeatLevel key 0xE4211F4F. Preserve a higher scripted starting heat.
-PPC_FUNC(sub_823385E0)
-{
-    __imp__sub_823385E0(ctx, base);
-    if (Enabled())
-    {
-        Log("ForceHeatLevel", ctx.f1.f64, std::max(ctx.f1.f64, double(s_heat)));
-        ctx.f1.f64 = std::max(ctx.f1.f64, double(s_heat));
     }
 }
