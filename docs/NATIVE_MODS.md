@@ -153,6 +153,9 @@ fields and pointers are big-endian. Native pointers never enter guest fields.
 | CopDensity getter | `0x8233A738`; key `0xDBC08D32` | Local +`0x2A` or VLT percent, mapped to enum 0..3. |
 | ForceHeatLevel getter | `0x823385E0`; key `0xE4211F4F` | Stock generated getter; native heat override removed 2026-11-04. |
 | Raw attribute lookup | `0x82148818` | Some loader reads bypass getters. Composed with existing language hook, returns private values for CopsInRace and CopDensity only; heat passes through. |
+| Race Police Off | `0x823380E0` caller return `0x8233997C`, `0x8233A738` caller return `0x82339790`, `0x820EB6A8` | Zero the serialized race flag and density and deny the stock CanSpawn result for active competitive races. Other uses of the getters and spawn checks keep their normal results. |
+| Quick Race Starting Heat | `0x821068E8` | The USA `SetWorldHeat` script resolves the human AI heat interface. Both vtables `0x82065610` and `0x820662D0` use the same setter (+8) and getter (+4, reads +`0x1C`). The latter was observed in a live Circuit. The native update sets heat once for each initialized local driver in Quick Race. |
+| Auto Drive | `0x82367150` / `0x823671E8` | USA script registration `0x8235E8A8` names these ForceAIControl and ClearAIControl. They resolve the first or last local player via `0x82366FD8`, then use interface type `0x820E3D98`. The runtime queues the input to game update `0x823AFE20` and verifies the control flag through interface slot +`0x0C`. One local player only. |
 
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
@@ -179,10 +182,9 @@ mass multiplier is stock-equivalent. Set variables before launching
 | `NFSMW_FAIRCOPS_LOG` | `0` | Five-second dispatch timings and player pursuit requests. |
 | `NFSMW_POLICE_PROBE` | `0` | Bounded read-only layout/spawn diagnostics around shared feature hooks. |
 
-Heat uses the original game rules. The earlier `NFSMW_POLICE_START_HEAT`
-development override and its getter/raw-attribute modifications were removed
-on 2026-11-04. The separate police count option defaults to a maximum 2x
-ground-cop budget at four racers, including the human; it never scales heat.
+Heat uses the original game rules by default. The optional Quick Race starting
+heat sets the local driver's heat once at event startup. The separate police
+budget defaults to 25% extra per starting racer and never scales heat.
 
 FairCops retains each valid assignment across roster changes and race exit.
 It allocates free ground cars within 150 m using coverage, distance and

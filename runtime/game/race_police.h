@@ -3,6 +3,8 @@
 #include <cstdint>
 namespace game::race_police
 {
+    bool Enabled();
+    void UpdateStartingHeat(uint8_t* base);
     bool CanSpawn(const uint8_t* base, uint32_t managerInterface, uint32_t argument, bool original);
     // Composed with the existing language attribute hook. Returns original
     // unchanged outside the two supported USA police attributes. Heat stays stock.

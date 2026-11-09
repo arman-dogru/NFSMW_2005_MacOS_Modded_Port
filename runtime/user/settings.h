@@ -139,7 +139,9 @@ namespace settings
         ShowAllPolice,
         RacerPoliceSpawns,
         KeepPoliceNearRacers,
-        PolicePopulationScale,
+        PoliceBudgetPerRacer,
+        RacePoliceMode,
+        QuickRaceStartingHeat,
         AllBossRewards,
         Count
     };
@@ -152,6 +154,7 @@ namespace settings
     enum class Apply : uint8_t { Live, Restart };
 
     // Values of the enum options (GetInt returns them).
+    enum class RacePoliceMode : int32_t { Launcher, Stock, Enabled, Disabled };
     // Upscaling: FSR 1 is used only where the picture is enlarged; frames
     // shown at their size or smaller take the bicubic pass
     // (video/upscale.h, whose Mode has the same values).

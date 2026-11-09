@@ -2,12 +2,17 @@
 // Opt-in USA race police experiment. See docs/NATIVE_MODS.md for evidence
 // and the distinction between race eligibility and observed spawning.
 #include <stdafx.h>
+#include "fair_cops.h"
 #include "race_police.h"
 #include "police_probe.h"
+#include "split_screen.h"
 #include <region/region.h>
+#include <bit>
 #include <charconv>
+#include <kernel/function.h>
 #include <kernel/heap.h>
 #include <kernel/memory.h>
+#include <user/settings.h>
 
 extern "C" PPC_FUNC(__imp__sub_823380E0);
 extern "C" PPC_FUNC(__imp__sub_8233A738);
@@ -39,7 +44,14 @@ namespace
     const unsigned s_density = Option("NFSMW_POLICE_DENSITY", 3, 3);
     const unsigned s_delay = Option("NFSMW_POLICE_START_DELAY", 3, 60, true);
 
-    bool Enabled() { return s_enabled && region::Current() == region::Release::Usa; }
+    using settings::RacePoliceMode;
+    RacePoliceMode Mode()
+    {
+        if (region::Current() != region::Release::Usa) return RacePoliceMode::Stock;
+        const auto mode = RacePoliceMode(settings::GetInt(settings::Id::RacePoliceMode));
+        if (mode != RacePoliceMode::Launcher) return mode;
+        return s_enabled ? RacePoliceMode::Enabled : RacePoliceMode::Stock;
+    }
 
     uint32_t Read32(const uint8_t* base, uint32_t addr)
     {
@@ -54,9 +66,18 @@ namespace
         return race && Read32(base, race + 0x1A28) == 1 && Read32(base, race + 0x1A30);
     }
 
+    uint32_t QuickRaceDatabase(const uint8_t* base)
+    {
+        const uint32_t db = Read32(base, game::split_screen::kDatabasePointer);
+        if (game::split_screen::PlausibleObject(db) &&
+            (Read32(base, db + game::split_screen::kFlagsOffset) & game::split_screen::kQuickRaceFlag))
+            return db;
+        return 0;
+    }
+
     void LimitInitialDelay(uint8_t* base, uint32_t managerInterface)
     {
-        if (!Enabled() || !ActiveRace(base)) return;
+        if (!game::race_police::Enabled() || !ActiveRace(base)) return;
         const uint32_t bits = Read32(base, managerInterface + 0x58);
         float original;
         std::memcpy(&original, &bits, 4);
@@ -95,6 +116,11 @@ namespace
     }
 }
 
+bool game::race_police::Enabled()
+{
+    return Mode() == RacePoliceMode::Enabled;
+}
+
 bool game::race_police::CanSpawn(const uint8_t* base, uint32_t managerInterface, uint32_t argument, bool original)
 {
     if (original || !Enabled()) return original;
@@ -114,7 +140,9 @@ PPC_FUNC(sub_820EB6A8)
 {
     const uint32_t managerInterface = ctx.r3.u32, argument = ctx.r4.u32;
     __imp__sub_820EB6A8(ctx, base);
-    if (!ctx.r3.u32 && game::race_police::CanSpawn(base, managerInterface, argument, false))
+    if (Mode() == RacePoliceMode::Disabled && game::fair_cops::IsCompetitiveRace(base))
+        ctx.r3.u64 = 0;
+    else if (!ctx.r3.u32 && game::race_police::CanSpawn(base, managerInterface, argument, false))
         ctx.r3.u64 = 1;
     game::police_probe::ObserveCanSpawn(base, managerInterface, argument, ctx.r3.u32);
 }
@@ -156,21 +184,84 @@ uint32_t game::race_police::Attribute(const uint8_t* base, uint32_t key, uint32_
 // GRaceParameters: CopsInRace key 0x3918E889; local flag 0x800.
 PPC_FUNC(sub_823380E0)
 {
+    const uint32_t caller = ctx.lr;
     __imp__sub_823380E0(ctx, base);
-    if (Enabled())
+    if (game::race_police::Enabled())
     {
         Log("CopsInRace", ctx.r3.u32, 1);
         ctx.r3.u64 = 1;
     }
+    else if (caller == 0x8233997C && Mode() == RacePoliceMode::Disabled && QuickRaceDatabase(base))
+        ctx.r3.u64 = 0;
 }
 
 // CopDensity key 0xDBC08D32, mapped by the original from percent to 0..3.
 PPC_FUNC(sub_8233A738)
 {
+    const uint32_t caller = ctx.lr;
     __imp__sub_8233A738(ctx, base);
-    if (Enabled())
+    if (game::race_police::Enabled())
     {
         Log("CopDensity", ctx.r3.u32, std::max(ctx.r3.u32, s_density));
         ctx.r3.u64 = std::max(ctx.r3.u32, s_density);
+    }
+    else if (caller == 0x82339790 && Mode() == RacePoliceMode::Disabled && QuickRaceDatabase(base))
+        ctx.r3.u64 = 0;
+}
+
+void game::race_police::UpdateStartingHeat(uint8_t* base)
+{
+    static thread_local uint32_t race = 0;
+    static thread_local uint32_t parameters = 0;
+    static thread_local unsigned applied = 0;
+    static thread_local int heat = 0;
+    if ((!race && !settings::GetInt(settings::Id::QuickRaceStartingHeat)) ||
+        region::Current() != region::Release::Usa) return;
+
+    const uint32_t current = Read32(base, 0x82A2CB18);
+    if (!game::split_screen::PlausibleObject(current) || Read32(base, current + 0x1A28) != 1 ||
+        base[current + 0x1A24])
+    {
+        race = 0;
+        return;
+    }
+    const uint32_t currentParameters = Read32(base, current + 0x1A30);
+    if (race != current || parameters != currentParameters)
+    {
+        if (!game::fair_cops::IsCompetitiveRace(base))
+        {
+            race = 0;
+            return;
+        }
+        race = current;
+        parameters = currentParameters;
+        applied = 0;
+        heat = settings::GetInt(settings::Id::QuickRaceStartingHeat);
+    }
+    if (!heat) return;
+
+    const uint32_t db = QuickRaceDatabase(base);
+    if (!db) return;
+    const unsigned players = base[db + game::split_screen::kPlayersOffset];
+    if (players < 1 || players > 2 || Read32(base, 0x82C74BDC) != players) return;
+    if (applied == (1u << players) - 1) return;
+
+    // SetWorldHeat's interface lookup, once per local driver after both the
+    // race and the player list exist. The original setter updates heat data.
+    for (unsigned player = 0; player < players; ++player)
+    {
+        if (applied & (1u << player)) continue;
+        const uint32_t element = GuestToHostFunction<uint32_t>(0x82366FD8u, player);
+        if (!game::split_screen::PlausibleObject(element)) continue;
+        const uint32_t object = Read32(base, element + 4);
+        if (!game::split_screen::PlausibleObject(object)) continue;
+        const uint32_t worldHeat = GuestToHostFunction<uint32_t>(0x8231AF60u, object, 0x820E3E88u);
+        if (!game::split_screen::PlausibleObject(worldHeat)) continue;
+        const uint32_t vtable = Read32(base, worldHeat);
+        if (vtable != 0x82065610 && vtable != 0x820662D0) continue;
+        GuestToHostFunction<void>(0x821068E8u, worldHeat, float(heat));
+        const float actual = std::bit_cast<float>(Read32(base, worldHeat + 0x1C));
+        fprintf(stderr, "[race-police] local driver %u starting heat requested=%d actual=%.2f\n", player + 1, heat, actual);
+        applied |= 1u << player;
     }
 }

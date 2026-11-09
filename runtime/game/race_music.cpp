@@ -2,6 +2,7 @@
 #include <stdafx.h>
 #include "auto_drive.h"
 #include "fair_cops.h"
+#include "race_police.h"
 #include <kernel/function.h>
 #include <region/region.h>
 #include <bit>
@@ -101,6 +102,7 @@ namespace
 
 PPC_FUNC(sub_823AFE20)
 {
+    game::race_police::UpdateStartingHeat(base);
     game::auto_drive::Update(base);
     if (enabled && region::Current() == region::Release::Usa)
     {

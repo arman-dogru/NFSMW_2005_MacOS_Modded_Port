@@ -6,16 +6,13 @@
 
 namespace game::police_population
 {
-    // One racer keeps the base budget. Four or more reach the selected
-    // maximum (at most 2x). Round down: small budgets never exceed the scale.
-    // The original 64-simable allocation ceiling is not enlarged.
-    inline uint32_t ScaledBudget(uint32_t original, uint32_t racers, double maximum)
+    // Add the selected percentage for each starting racer. Round down and
+    // keep the original 64-simable allocation ceiling.
+    inline uint32_t ScaledBudget(uint32_t original, uint32_t racers, unsigned percentPerRacer)
     {
-        if (!original || original > 64 || racers < 2 ||
-            !std::isfinite(maximum) || maximum < 1 || maximum > 2)
+        if (original > 64 || racers > 16 || percentPerRacer > 100)
             return original;
-        const double factor = 1 + (maximum - 1) * (std::min(racers, 4u) - 1) / 3;
-        return uint32_t(std::min(64.0, std::floor(original * factor + 1e-9)));
+        return std::min(64u, original * (100 + percentPerRacer * racers) / 100);
     }
 
     // A manager task gets a scaled ceiling for this call only. The original

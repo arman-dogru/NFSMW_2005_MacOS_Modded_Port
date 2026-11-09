@@ -3,6 +3,7 @@
 #include "police_population.h"
 #include "fair_cops.h"
 #include "frame_time.h"
+#include "race_police.h"
 #include <kernel/function.h>
 #include <region/region.h>
 #include <report/report.h>
@@ -41,9 +42,8 @@ namespace
         return !(p & 3) && p >= 0x10000 && uint64_t(p) + extent < 0x100000000ull;
     }
     const bool s_modded = [] {
-        const char* race = std::getenv("NFSMW_RACE_POLICE");
         const char* fair = std::getenv("NFSMW_FAIRCOPS");
-        return (race && std::strcmp(race, "1") == 0) || (fair && std::strcmp(fair, "1") == 0);
+        return fair && std::strcmp(fair, "1") == 0;
     }();
     const bool s_log = [] {
         const char* v = std::getenv("NFSMW_POLICE_SPAWN_LOG");
@@ -51,7 +51,7 @@ namespace
     }();
     bool ActiveRace(const uint8_t* base)
     {
-        if (!s_modded || region::Current() != region::Release::Usa) return false;
+        if ((!s_modded && !race_police::Enabled()) || region::Current() != region::Release::Usa) return false;
         const uint32_t race = Read32(base, 0x82A2CB18);
         return Pointer(race, 0x1A34) && Read32(base, race + 0x1A28) == 1 &&
             Read32(base, race + 0x1A30);
@@ -101,10 +101,17 @@ namespace
         if (!human) snapshot.count = 0;
         return snapshot;
     }
+    uint32_t StartingRacers(const uint8_t* base)
+    {
+        // GRaceStatus counts the starting records, including both local
+        // players. Active vehicle counts can drop during a race.
+        const uint32_t race = Read32(base, 0x82A2CB18);
+        return race ? Read32(base, race + 0x1A20) : 0;
+    }
     uint32_t Scale(uint8_t* base, uint32_t original)
     {
-        return ScaledBudget(original, Racers(base).count,
-            settings::GetFloat(settings::Id::PolicePopulationScale));
+        return ScaledBudget(original, StartingRacers(base),
+            settings::GetInt(settings::Id::PoliceBudgetPerRacer));
     }
     thread_local uint32_t s_spawnTarget = 0;
     thread_local bool s_spawnTargetUsed = false;
@@ -138,7 +145,7 @@ ScopedManagerBudget::ScopedManagerBudget(uint8_t* memory, uint32_t manager) : ba
         static uint32_t lastManager = 0, lastBudget = 0;
         if (s_log && (lastManager != manager || lastBudget != applied))
             fprintf(stderr, "[police-budget] manager=%08X ceiling=%u -> %u racers=%u\n",
-                manager, original, applied, Racers(base).count);
+                manager, original, applied, StartingRacers(base));
         lastManager = manager;
         lastBudget = applied;
     }
@@ -274,6 +281,6 @@ PPC_FUNC(sub_82118F80)
         static unsigned lines = 0;
         if (s_log && lines++ < 24)
             fprintf(stderr, "[police-budget] racers=%u model=%08X cars=%u -> %u\n",
-                Racers(base).count, Read32(base, row + 8), original, scaled);
+                StartingRacers(base), Read32(base, row + 8), original, scaled);
     }
 }

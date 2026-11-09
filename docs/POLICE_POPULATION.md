@@ -13,18 +13,19 @@ Native Settings > Game saves these options and applies them live:
 | Show All Police | `show_all_police` | On | `NFSMW_SHOW_ALL_POLICE=0/1` |
 | Police Spawn Near Racers | `racer_police_spawns` | On | `NFSMW_RACER_POLICE_SPAWNS=0/1` |
 | Keep Police Near Racers | `keep_police_near_racers` | On | `NFSMW_KEEP_POLICE_NEAR_RACERS=0/1` |
-| Police Count at Four Racers | `police_population_scale` | 2 | `NFSMW_POLICE_POPULATION_SCALE=1..2` |
+| Extra Police Budget per Racer | `police_budget_per_racer` | 25% | `NFSMW_POLICE_BUDGET_PER_RACER=0..100` |
 
 Spawning, retention and scaling require an initialized active race and
 `NFSMW_RACE_POLICE=1` or `NFSMW_FAIRCOPS=1`. Minimap visibility also works outside
 races. Environment overrides do not replace saved preferences.
 
-The multiplier grows linearly from 1x with one racer to the selected maximum
-with four, counting the human. The default factors are 1x, 1.333x, 1.667x, 2x;
-integer budgets round down. A five-car budget becomes 5, 6, 8, 10. More than
-four racers still receive at most 2x. Zero/unknown budgets and helicopter
-counts are not increased. The original 64-simable allocation ceiling remains;
-budgets are requests, not guaranteed populations.
+The budget is multiplied by 1 + (extra percent × starting racers ÷ 100).
+At the default 25%, one, two, four and six racers give 1.25×, 1.5×, 2× and
+2.5×, respectively. The roster includes local players, and remains stable when
+a car retires. Integer budgets round down and retain the 64-simable ceiling.
+Zero/unknown budgets and helicopter counts stay stock. The old saved key and
+launch override migrate to the closest whole percent with the same four-racer
+target. The new setting takes precedence.
 
 **This doubles ground-cop budgets, not heat.** Heat values, progression and
 Career/event heat limits follow the original game. The old development
@@ -58,6 +59,7 @@ restores the stock update. Helicopter art remains original.
 | USA address/layout | Evidence and use |
 |---|---|
 | `820F2320` | Manager task receives root+8; budget scope covers the original task. |
+| GRaceStatus `+1A20` | Starting record count, read directly by `8232F960`. `8232FF60` appends a 416-byte racer record and increments the count. |
 | Manager vtable `82065C9C`, ceiling `+98` | Constructor `820EA958` initializes 8; population update compares active `+94` against it. Scale temporarily, restore if unchanged afterward. |
 | Attribute key `24F7A1BC` | Xbox hash of `NumPatrolCars`, read by `820EE944`. Private immutable return values avoid shared VLT edits. |
 | `82118F80` | Caller-owned car-table rows: stride `18`, requested count `+10`, model hash `+8`. Original helicopter exclusion uses `82A2DF44`. |

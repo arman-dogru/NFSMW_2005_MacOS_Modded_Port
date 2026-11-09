@@ -55,6 +55,7 @@ int main(int argc, char** argv)
     // The options used here come from the file and these defaults only.
     for (const settings::Option& o : settings::Options())
         SetEnv(o.env, nullptr);
+    SetEnv("NFSMW_POLICE_POPULATION_SCALE", nullptr);
     SetEnv("NFSMW_TEXTURE_MIPS", "1");  // Mipmaps: an environment override
 
     // Before Load, as on an iPhone: what a file without the option gives.
@@ -147,6 +148,17 @@ int main(int argc, char** argv)
     SetEnv("NFSMW_SB_UNLIMITED", nullptr);
     CHECK(settings::Load(file) && settings::GetBool(Id::UnlimitedSpeedbreaker),
         "enabled returns after the baseline override is removed");
+
+    CHECK(settings::GetInt(Id::PoliceBudgetPerRacer) == 25, "25 percent extra per starting racer by default");
+    WriteFile(file, "[game]\npolice_population_scale = 1\nrace_police_mode = \"off\"\n");
+    CHECK(settings::Load(file), "load legacy cop budget and new race police mode");
+    CHECK(settings::GetInt(Id::PoliceBudgetPerRacer) == 0, "previously disabled scaling stays disabled");
+    CHECK(settings::GetInt(Id::RacePoliceMode) == int(settings::RacePoliceMode::Disabled), "load race police off");
+    SetEnv("NFSMW_POLICE_POPULATION_SCALE", "2");
+    CHECK(settings::Load(file) && settings::GetInt(Id::PoliceBudgetPerRacer) == 25, "legacy launch override migrates");
+    SetEnv("NFSMW_POLICE_BUDGET_PER_RACER", "100");
+    CHECK(settings::Load(file) && settings::GetInt(Id::PoliceBudgetPerRacer) == 100, "new override wins");
+    CHECK(settings::GetStoredValue(Id::PoliceBudgetPerRacer) == 0, "override leaves saved choice intact");
 
     settings::Unsubscribe(listener);
     std::filesystem::remove_all(dir, ec);

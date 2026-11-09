@@ -136,12 +136,25 @@ the saved preference. Mass accepts 0..1,000,000, defaults to stock 2 and
 caps effective collision mass at 1e9 kg; high permitted values are not a
 guarantee of collision-solver stability. See its dedicated document.
 
-The same Game page saves police visibility, racer-based placement, retention
-near other racers and a maximum police population multiplier (1x..2x at four
-racers). These default to On/2x. The existing race-police and FairCops launch
-flags still enable their respective systems. See [settings and limitations](POLICE_POPULATION.md).
-The multiplier applies to ground-cop counts. Heat uses the game's normal rules;
-the earlier development heat override has been removed.
+The same Game page saves police visibility, racer-based placement and retention
+near other racers. **Extra Police Budget per Racer** defaults to 25% and can be
+set from 0% to 100%. Four starting racers give 2× at the default. The budget
+applies to ground cops and heat follows the original game rules.
+See [settings and limitations](POLICE_POPULATION.md).
+
+**Race Police** defaults to Follow Launcher and also offers Stock, On, and Off.
+Choose before starting an event. Off suppresses new police through race setup
+and the stock spawn gate. It leaves existing cars and pursuits to their own
+cleanup rules. The launch override is `NFSMW_RACE_POLICE_MODE=off`.
+
+**Quick Race Starting Heat** uses the stock setting at 0. A value from 1
+through 5 sets the initial heat through the original world-heat setter.
+Use `NFSMW_QUICK_RACE_STARTING_HEAT` to override it for one launch.
+
+**Auto Drive** uses a DualSense touchpad click or F6 to switch control to the
+game's driver AI and back during a single-local-player competitive race.
+This can be used to repeat Quick Race benchmark runs. Split-screen toggling
+still needs its controller-to-player mapping verified.
 
 The modded launcher plays EA Trax during competitive races and restores the
 normal music rules afterward. Set `NFSMW_RACE_EA_TRAX_ONLY=0` before launch

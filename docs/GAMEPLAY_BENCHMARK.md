@@ -16,7 +16,7 @@ since slow motion also changes the scene's workload.
 1. Compare the current executable with all gameplay additions off versus on.
    Off: `NFSMW_SB_MASS=2 NFSMW_SB_UNLIMITED=0 NFSMW_RACE_POLICE=0
    NFSMW_FAIRCOPS=0 NFSMW_SHOW_ALL_POLICE=0 NFSMW_RACER_POLICE_SPAWNS=0
-   NFSMW_KEEP_POLICE_NEAR_RACERS=0 NFSMW_POLICE_POPULATION_SCALE=1 NFSMW_BOSS_REWARDS=0
+   NFSMW_KEEP_POLICE_NEAR_RACERS=0 NFSMW_POLICE_BUDGET_PER_RACER=0 NFSMW_BOSS_REWARDS=0
    NFSMW_RACE_EA_TRAX_ONLY=0`.
    Keep verbose probes/logging off in both. This isolates
    gameplay options while using the same runtime/compiler/graphics build.

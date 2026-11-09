@@ -66,6 +66,13 @@ namespace settings
 #else
         constexpr bool kFsr1Offered = true;
 #endif
+        constexpr EnumEntry kRacePoliceModes[] = {
+            { int32_t(RacePoliceMode::Launcher), "launcher", "Follow Launcher" },
+            { int32_t(RacePoliceMode::Stock), "stock", "Stock" },
+            { int32_t(RacePoliceMode::Enabled), "on", "On" },
+            { int32_t(RacePoliceMode::Disabled), "off", "Off" },
+        };
+
         constexpr EnumEntry kScalingEntries[] = {
             { int32_t(ScalingMode::Bicubic), "bicubic", "Bicubic" },
             { int32_t(ScalingMode::Linear), "linear", "Bilinear" },
@@ -465,10 +472,18 @@ namespace settings
               .table = "game", .key = "keep_police_near_racers", .label = "Keep Police Near Racers",
               .description = "Keep cops near any live racer even when far from you. Heat, pursuit ending and other cleanup rules still apply. USA game only.",
               .env = "NFSMW_KEEP_POLICE_NEAR_RACERS", .defaultValue = 1 },
-            { .id = Id::PolicePopulationScale, .category = Category::Game, .type = Type::Float, .apply = Apply::Live,
-              .table = "game", .key = "police_population_scale", .label = "Police Count at Four Racers",
-              .description = "Multiply ground-cop budgets up to 2x with four racers including you. Scales gradually from one racer. Heat follows the game's normal rules; vehicle capacity still applies. USA game only.",
-              .env = "NFSMW_POLICE_POPULATION_SCALE", .defaultValue = 2, .min = 1, .max = 2, .step = 0.1 },
+            { .id = Id::PoliceBudgetPerRacer, .category = Category::Game, .type = Type::Int, .apply = Apply::Live,
+              .table = "game", .key = "police_budget_per_racer", .label = "Extra Police Budget per Racer",
+              .description = "Add this percentage to the ground-cop budget for each racer on the starting grid. Heat and vehicle capacity follow the game's normal rules. USA game only.",
+              .env = "NFSMW_POLICE_BUDGET_PER_RACER", .defaultValue = 25, .min = 0, .max = 100, .step = 1, .unit = "%" },
+            { .id = Id::RacePoliceMode, .category = Category::Game, .type = Type::Enum, .apply = Apply::Live,
+              .table = "game", .key = "race_police_mode", .label = "Race Police",
+              .description = "Set before a race. Off suppresses new police in competitive races. Stock uses the event's police rules. USA game only.",
+              .env = "NFSMW_RACE_POLICE_MODE", .defaultValue = 0, .min = 0, .max = 3, .entries = kRacePoliceModes },
+            { .id = Id::QuickRaceStartingHeat, .category = Category::Game, .type = Type::Int, .apply = Apply::Live,
+              .table = "game", .key = "quick_race_starting_heat", .label = "Quick Race Starting Heat",
+              .description = "Set before starting a Quick Race. Zero uses the event's starting heat. The game's heat progression still applies. USA game only.",
+              .env = "NFSMW_QUICK_RACE_STARTING_HEAT", .defaultValue = 0, .min = 0, .max = 5, .step = 1 },
             { .id = Id::AllBossRewards, .category = Category::Game, .type = Type::Bool, .apply = Apply::Live,
               .table = "game", .key = "all_boss_rewards", .label = "All Boss Rewards",
               .description = "Pick all six reward cards after defeating a Blacklist rival. Each card is awarded once. USA game only.",
@@ -892,6 +907,13 @@ namespace settings
             }
         }
 
+        // Preserve the previous four-racer budget when migrating old settings.
+        std::optional<double> LegacyPoliceBudget(const Option& o, std::optional<double> scale)
+        {
+            if (!scale || !std::isfinite(*scale)) return {};
+            return Normalize(o, (std::clamp(*scale, 1.0, 2.0) - 1) * 25);
+        }
+
         // Reads option i's environment variable into s_envValue/s_envSet.
         // Under s_mutex. The runtime never calls setenv, so getenv is safe.
         void ReadEnvLocked(size_t i, bool log)
@@ -901,6 +923,17 @@ namespace settings
             if (!o.env)
                 return;  // a Key option: the file alone
             const char* v = std::getenv(o.env);
+            if (!v && o.id == Id::PoliceBudgetPerRacer)
+            {
+                const char* legacy = std::getenv("NFSMW_POLICE_POPULATION_SCALE");
+                if (legacy)
+                    if (auto value = LegacyPoliceBudget(o, ParseNumber(legacy)))
+                    {
+                        s_envValue[i].store(*value, std::memory_order_relaxed);
+                        s_envSet[i].store(true, std::memory_order_relaxed);
+                        if (log) fprintf(stderr, "[settings] migrated NFSMW_POLICE_POPULATION_SCALE for this run\n");
+                    }
+            }
             if (!v)
                 return;
             std::optional<std::string_view> field = EnvField(v, o.envField);
@@ -1572,6 +1605,7 @@ namespace settings
                     path.string(), where.line, where.column, error,
                     ec ? "saving them will replace the file" : std::format("the file was kept as {}", bad.string()));
             }
+            std::optional<double> legacyPoliceBudget;
             for (auto&& [tableKey, tableNode] : root)
             {
                 const toml::table* table = tableNode.as_table();
@@ -1611,6 +1645,12 @@ namespace settings
                                 NodeText(node).c_str());
                         continue;
                     }
+                    if (tableKey.str() == "game" && key.str() == "police_population_scale")
+                    {
+                        const Option& option = kOptions[size_t(Id::PoliceBudgetPerRacer)];
+                        legacyPoliceBudget = LegacyPoliceBudget(option, RawFromToml(option, node));
+                        continue;
+                    }
                     const Option* o = Find(tableKey.str(), key.str());
                     if (!o)
                     {
@@ -1624,6 +1664,12 @@ namespace settings
                         fromFile++;
                     }
                 }
+            }
+            auto& budget = fileValues[size_t(Id::PoliceBudgetPerRacer)];
+            if (!budget && legacyPoliceBudget)
+            {
+                budget = legacyPoliceBudget;
+                fromFile++;
             }
             if (error.empty())
                 fprintf(stderr, "[settings] %s: %zu value%s from the file\n", path.string().c_str(), fromFile, fromFile == 1 ? "" : "s");

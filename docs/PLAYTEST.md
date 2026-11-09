@@ -75,3 +75,18 @@ through repeated activation/deactivation. This confirms the sampled full charge;
 it is not a timed 30-second activation test or matched performance comparison.
 The spawning hypothesis remains unproven. Original save/settings hashes were
 checked again after the initial population smoke run and remained unchanged.
+
+## Race controls smoke test, 2026-11-09
+
+In the isolated ARM64 desktop build, a four-racer Ironwood Estates Circuit in a
+stock Lexus IS 300 ran with Race Police Off and no cops in the manager during
+the observed window. F6 engaged Auto Drive, the Lexus accelerated and steered
+without input, and a second press released control. In a second race with
+police enabled, the user toggled Auto Drive both ways on a Bluetooth DualSense.
+The runtime recorded both handoffs and a ground-cop manager ceiling of 8 → 16
+for four starting racers. Split-screen behavior, race restarts, and matched
+performance runs still need testing.
+
+A scripted headless Circuit loaded with Starting Heat 3 and read back 3.00
+from the stock world-heat interface. Police became eligible after the opening
+sequence. This verifies initialization for one local driver.
