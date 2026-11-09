@@ -1,5 +1,6 @@
 // SpeedBreaker. GPL-3.0-or-later (see COPYING).
 #include <stdafx.h>
+#include "auto_drive.h"
 #include "fair_cops.h"
 #include <kernel/function.h>
 #include <region/region.h>
@@ -100,6 +101,7 @@ namespace
 
 PPC_FUNC(sub_823AFE20)
 {
+    game::auto_drive::Update(base);
     if (enabled && region::Current() == region::Release::Usa)
     {
         const bool active = InRace(base);

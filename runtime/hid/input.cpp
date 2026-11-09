@@ -7,6 +7,7 @@
 #include "rumble_note.h"
 #include "wheel.h"
 #include <cpu/guest_time.h>
+#include <game/auto_drive.h>
 #include <game/split_screen.h>
 #include <kernel/function.h>
 #include <ui/ui.h>
@@ -482,6 +483,7 @@ namespace
                 { "LS", SDL_GAMEPAD_BUTTON_LEFT_STICK }, { "RS", SDL_GAMEPAD_BUTTON_RIGHT_STICK },
                 { "UP", SDL_GAMEPAD_BUTTON_DPAD_UP }, { "DOWN", SDL_GAMEPAD_BUTTON_DPAD_DOWN },
                 { "LEFT", SDL_GAMEPAD_BUTTON_DPAD_LEFT }, { "RIGHT", SDL_GAMEPAD_BUTTON_DPAD_RIGHT },
+                { "TOUCHPAD", SDL_GAMEPAD_BUTTON_TOUCHPAD },
             };
             if (name == "SHOT")
             {
@@ -1064,6 +1066,12 @@ namespace hid
     void HandleEvent(const SDL_Event& e)
     {
         wheel::HandleEvent(e);  // a wheel coming or going
+        const bool autoDriveClick = e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&
+            e.gbutton.button == SDL_GAMEPAD_BUTTON_TOUCHPAD && s_gamepad &&
+            e.gbutton.which == SDL_GetGamepadID(s_gamepad);
+        const bool autoDriveKey = e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.scancode == SDL_SCANCODE_F6;
+        if ((autoDriveClick || autoDriveKey) && !s_blocked.load(std::memory_order_relaxed))
+            game::auto_drive::Toggle();
         if (e.type == SDL_EVENT_GAMEPAD_ADDED)
         {
             OpenFirstGamepad();
