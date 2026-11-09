@@ -124,7 +124,7 @@ while the game is closed.
 
 ```sh
 NFSMW_RACE_POLICE=1 \
-NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 \
+NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 NFSMW_RACE_EA_TRAX_ONLY=1 \
 bash scripts/macos/run_dev.sh
 ```
 
@@ -143,6 +143,11 @@ flags still enable their respective systems. See [settings and limitations](POLI
 The multiplier applies to ground-cop counts. Heat uses the game's normal rules;
 the earlier development heat override has been removed.
 
+The modded launcher plays EA Trax during competitive races and restores the
+normal music rules afterward. Set `NFSMW_RACE_EA_TRAX_ONLY=0` before launch
+to use stock music selection. Enabled songs and volume still come from the
+game's audio settings. Pursuit-only events use the stock soundtrack.
+
 **All Boss Rewards** on the same page lets you pick all six cards after a boss.
 It defaults to On and is included in the updated run command's executable.
 
@@ -150,7 +155,7 @@ For a Finder-launchable isolated package, capture the same mod settings:
 
 ```sh
 NFSMW_RACE_POLICE=1 \
-NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 \
+NFSMW_FAIRCOPS=1 NFSMW_SB_MASS=1000 NFSMW_RACE_EA_TRAX_ONLY=1 \
 python3 scripts/macos/make_app.py build/main build/faircops-test \
   --test --dev-profile="$PWD/build/dev-profile"
 ```

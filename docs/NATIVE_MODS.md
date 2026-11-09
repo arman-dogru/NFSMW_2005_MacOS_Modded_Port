@@ -174,11 +174,9 @@ mass multiplier is stock-equivalent. Set variables before launching
 | `NFSMW_RACE_POLICE` | `0` | Race police eligibility, attributes and CanSpawn overrides; positive Circuit/Sprint spawning. |
 | `NFSMW_POLICE_DENSITY` | `3` | Minimum density enum 1..3 when race police enabled. |
 | `NFSMW_POLICE_START_DELAY` | `3` | Cap the initial race spawn cooldown, 0..60 seconds. Loading and cinematic gates still apply. |
-| `NFSMW_FAIRCOPS` | `0` | Native adapter; requires eligible active police and at least two live racers. |
-| `NFSMW_FAIRCOPS_REBALANCE` | `30` | Manager updates between rebalances, 1..600. |
-| `NFSMW_FAIRCOPS_ROTATION` | `600` | Undersupply rotation interval, 60..7200 updates, or 0 to disable rotation. |
+| `NFSMW_FAIRCOPS` | `0` | Stable ground-cop dispatch and independent player sightings. |
 | `NFSMW_FAIRCOPS_SKIP_ROADBLOCKS` | `1` | Exclude static roadblock holders. |
-| `NFSMW_FAIRCOPS_LOG` | `0` | Five-second assignment/actual target coverage and native timing diagnostics. |
+| `NFSMW_FAIRCOPS_LOG` | `0` | Five-second dispatch timings and player pursuit requests. |
 | `NFSMW_POLICE_PROBE` | `0` | Bounded read-only layout/spawn diagnostics around shared feature hooks. |
 
 Heat uses the original game rules. The earlier `NFSMW_POLICE_START_HEAT`
@@ -186,12 +184,18 @@ development override and its getter/raw-attribute modifications were removed
 on 2026-11-04. The separate police count option defaults to a maximum 2x
 ground-cop budget at four racers, including the human; it never scales heat.
 
-The FairCops policy is header-only, uses fixed arrays (96 cops/16 racers),
-keeps valid assignments, moves only what balancing needs, and rotates coverage
-when cops are fewer than racers. Duplicate/zero IDs and overflow populations
-fail closed. Guest adapter IDs include constructor/destructor lifetime, and it
-resets when manager or player changes. Unsupported vtables fail closed.
-It creates no formal pursuit objects and no independent AI bust/DNF timers.
+FairCops retains each valid assignment across roster changes and race exit.
+It allocates free ground cars within 150 m using coverage, distance and
+lifetime ID in that order. Stock single-car reinforcements can use an alternate
+spawn anchor. A failed placement tries the stock anchor before activation.
+The previous rebalance and rotation variables are retired.
+
+| USA hook | Evidence and behavior |
+|---|---|
+| `0x820EE908`, return `0x820F2378` | Manager patrol update on the simulation task. Takes a racer snapshot and runs staggered stock `CanSeeTarget` checks via `0x82107F50` for AI-assigned cops. The probe uses an unregistered target and saves the per-cop hiding latch at pursuit interface +`0x64`. |
+| `0x8210B2E8`, return `0x820EEEA4` | Patrol manager's request getter after its eligibility checks. One verified player contact can release an AI pursuit through `0x820E9770` and use the stock request to create the player pursuit. |
+| `0x820E9348` | Stock pursuit-active setter clears the dispatch record on release, including pooled cop reuse. |
+| `0x82117950` and `0x820E9418`, return `0x8211816C` | Pursuit task reads the minimum of its member sight timers into task +`0x168`. Independent sightings update the player timer. The member getter passes through stock samples for matching targets. |
 
 The current race CanSpawn experiment bypasses only the global suppression when
 race state is 1 with valid parameters, the manager block permits spawning,
@@ -201,13 +205,23 @@ global or bypass cinematic checks. Reset/enable wrappers `0x820F18F8` and
 ticks do not reset it. The configured cooldown still gates actual spawning. A positive CanSpawn result alone
 does not prove model creation, road placement or pursuit engagement.
 
+## EA Trax during races
+
+The modded launcher enables `NFSMW_RACE_EA_TRAX_ONLY=1`. A direct
+development launch uses stock selection unless the option is set.
+
+| USA hook | Evidence and behavior |
+|---|---|
+| `0x823AFE20` | Game-thread frame entry publishes a race flag for audio. The race parameter getters check the loaded race type. `0x8232F7F0` finds the local racer by Simable and `0x82335150` sets its finish byte at +`0x21`. |
+| `0x82201628`, `0x82201720`, `0x82201258` | Pathfinder's startup type, pursuit transition test and interactive start. The normal dynamic event is `0x016E7282`. |
+| `0x82201818`, `0x82201B50` | Only the in-game scheduler calls after its streaming and skip checks use the race policy. Those calls use stock Pathfinder Stop `0x825C4B30` and StartLicensedMusic `0x82200ED8`. This covers Drag without changing the general Drag predicate. |
+| `0x82203690` | Pathfinder event handler. The race override suppresses interactive score events and preserves the stock stop and start-screen events. |
+
 ## Recorded tests and remaining validation
 
 - Baseline ARM64 build, package, menu, Quick Play Drag race, throttle and pause:
   passed as described above.
-- `fair_cops_test`: passed, including exhaustive 96 cop counts by 15 racer
-  counts, churn, stability, recycled IDs, rotation, resets and invalid input.
-  Standalone AddressSanitizer/UndefinedBehaviorSanitizer passed.
+- `fair_cops_test` covers current local dispatch, coverage priority, the range boundary and invalid coordinates.
 - `speedbreaker_mass_test`, `dev_profile_test`, `paths_test`, `language_test`:
   passed. Mass test also passed both sanitizers.
 - Native Speedbreaker 1000x activation/deactivation: passed with 1547 kg base

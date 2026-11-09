@@ -9,6 +9,7 @@ fi
 export NFSMW_RACE_POLICE="${NFSMW_RACE_POLICE:-1}"
 export NFSMW_POLICE_DENSITY="${NFSMW_POLICE_DENSITY:-3}"
 export NFSMW_POLICE_START_DELAY="${NFSMW_POLICE_START_DELAY:-3}"
+export NFSMW_RACE_EA_TRAX_ONLY="${NFSMW_RACE_EA_TRAX_ONLY:-1}"
 export NFSMW_FAIRCOPS="${NFSMW_FAIRCOPS:-1}"
 export NFSMW_SB_MASS="${NFSMW_SB_MASS:-1000}"
 # Live Game settings (unlimited Speedbreaker and all boss rewards, default On)
