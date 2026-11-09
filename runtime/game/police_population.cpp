@@ -9,6 +9,7 @@
 #include <user/settings.h>
 
 extern "C" PPC_FUNC(__imp__sub_820ECFB8);
+extern "C" PPC_FUNC(__imp__sub_820ECA58);
 extern "C" PPC_FUNC(__imp__sub_8211A428);
 extern "C" PPC_FUNC(__imp__sub_8211B9E8);
 extern "C" PPC_FUNC(__imp__sub_82118F80);
@@ -105,29 +106,6 @@ namespace
         return ScaledBudget(original, Racers(base).count,
             settings::GetFloat(settings::Id::PolicePopulationScale));
     }
-    Racer SelectRacer(uint8_t* base)
-    {
-        const auto& racers = Racers(base);
-        if (racers.count < 2) return {};
-        std::array<unsigned, 16> coverage{};
-        const uint32_t count = Read32(base, 0x82C6F314), data = Read32(base, 0x82C6F30C);
-        if (count > 96 || !Pointer(data, count * 4)) return {};
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            const uint32_t cop = Read32(base, data + i * 4);
-            if (!Live(base, cop)) continue;
-            const uint32_t ai = Read32(base, cop + 0x54);
-            if (!Pointer(ai, 0x80C) || Read32(base, ai) != 0x82065A78 ||
-                !base[ai + 0x808] || Read32(base, ai + 0x8C) == 0x9E55B2E3) continue;
-            const uint32_t target = Read32(base, ai + 0x68);
-            if (!Pointer(target, 0x40) || !base[target + 0x3C]) continue;
-            const uint32_t simable = Read32(base, target + 0x2C);
-            for (uint32_t r = 0; r < racers.count; ++r)
-                coverage[r] += simable == racers.racers[r].simable;
-        }
-        const auto least = std::min_element(coverage.begin(), coverage.begin() + racers.count);
-        return racers.racers[size_t(least - coverage.begin())];
-    }
     thread_local uint32_t s_spawnTarget = 0;
     thread_local bool s_spawnTargetUsed = false;
     uint32_t TemporaryTarget(uint8_t* base, uint32_t simable)
@@ -194,22 +172,43 @@ PPC_FUNC(sub_820ECFB8)
     const uint32_t pursuit = ctx.r4.u32, cop = ctx.r5.u32;
     const bool enabled = ActiveRace(base) && settings::GetBool(settings::Id::RacerPoliceSpawns) &&
         Pointer(pursuit, 0x78) && Read32(base, pursuit) == 0x82064CD8;
-    const Racer racer = enabled ? SelectRacer(base) : Racer{};
+    const uint32_t racer = enabled ? game::fair_cops::SpawnAnchor(base, pursuit) : 0;
     const uint32_t saved = s_spawnTarget;
     const bool savedUsed = s_spawnTargetUsed;
-    s_spawnTarget = racer.vehicle ? TemporaryTarget(base, racer.simable) : 0;
+    s_spawnTarget = racer ? TemporaryTarget(base, racer - 0x94) : 0;
     s_spawnTargetUsed = false;
     __imp__sub_820ECFB8(ctx, base);
-    const bool used = s_spawnTarget && s_spawnTargetUsed && ctx.r3.u32;
+    const bool used = s_spawnTargetUsed && (ctx.r3.u32 & 0xFF);
     s_spawnTarget = saved;
     s_spawnTargetUsed = savedUsed;
-    if (used && Live(base, cop))
+    if (ctx.r3.u32 & 0xFF) game::fair_cops::Spawned(base, cop, used ? racer : 0);
+    if (used)
     {
-        game::fair_cops::PreferSpawnTarget(cop, racer.vehicle);
         static unsigned lines = 0;
         if (s_log && lines++ < 96)
-            fprintf(stderr, "[police-spawn] anchor racer=%08X cop=%08X\n", racer.vehicle, cop);
+            fprintf(stderr, "[police-spawn] anchor racer=%08X cop=%08X\n", racer, cop);
     }
+}
+
+// Retry only the placement search. The car has not been activated or
+// attached yet, so a failed alternate anchor can use the original route.
+PPC_FUNC(sub_820ECA58)
+{
+    using namespace game::police_population;
+    if (!s_spawnTarget || ctx.lr != 0x820ED610)
+    {
+        __imp__sub_820ECA58(ctx, base);
+        return;
+    }
+    const auto entry = ctx;
+    __imp__sub_820ECA58(ctx, base);
+    if (ctx.r3.u32 & 0xFF) return;
+    const auto anchor = s_spawnTarget;
+    s_spawnTarget = 0;
+    s_spawnTargetUsed = false;
+    ctx = entry;
+    __imp__sub_820ECA58(ctx, base);
+    s_spawnTarget = anchor;
 }
 
 // IPursuit::GetTarget returns +0x74. Only the spawn finder's first call may

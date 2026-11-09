@@ -83,7 +83,7 @@ identified before use. No PC addresses/layouts were assumed compatible.
 `ninja -C build/main -j4 SpeedBreaker` produced a native ARM64 executable.
 `fair_cops_test`, `police_population_test`, `settings_test` and
 `speedbreaker_mass_test` passed. Policy tests cover budget bounds/rounding and
-stable spawn seeds, including actor disappearance and fairness repair.
+spawn seeds under the original allocator, which has since been replaced by stable dispatch.
 
 The initial Circuit smoke test (Ironwood Estates, Golf GTI, three AI racers)
 recorded ground requests 3→6 at four racers, the spawn finder consuming an AI
