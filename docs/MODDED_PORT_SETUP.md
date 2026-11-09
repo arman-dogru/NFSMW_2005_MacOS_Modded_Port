@@ -19,8 +19,9 @@ not used. Preserve the upstream copyright notices, [COPYING](../COPYING),
   immediate replenishment, and no minimum speed. Built, settings tests
   passed, user reported it working; live readbacks remained fully charged
   during repeated use.
-- New police extensions: non-pursuit minimap visibility, racer-based single-car
-  placement and distance retention, and budgets up to 2x with four racers.
+- New police extensions include non-pursuit minimap visibility, racer-based
+  single-car placement and distance retention, and an adjustable per-racer
+  budget that defaults to 2× with four starting racers.
   Built with initial runtime readbacks; higher populations, extra minimap art
   and cleanup regressions still need validation. See [police population](POLICE_POPULATION.md).
 - Pending: matched performance comparison and investigation of reported stutters.

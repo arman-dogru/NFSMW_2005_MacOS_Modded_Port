@@ -1,8 +1,23 @@
 # Changelog
 
-What changed in each SpeedBreaker release, newest first. Each release's notes on GitHub start from
-its entry here, and the game shows the entry once, the first time a new version starts (offline:
-it's built into the game).
+Modded Port release notes appear first, followed by the upstream SpeedBreaker
+changelog. The in-game What's New panel uses the upstream engine version.
+
+## v1.1.1 (macOS Modded Port)
+
+- **Auto Drive** lets the stock AI drive your car during a solo race. Click the
+  DualSense touchpad or press F6 again to take back control. Both handoffs were
+  verified on a Bluetooth DualSense in Circuit.
+- **Race Police** in **Settings > Game** offers Follow Launcher, Stock, On, and
+  Off. Off suppresses new police spawns during competitive races.
+- **Quick Race Starting Heat** offers levels 1–5 and uses the event default at
+  0. Heat 3 was verified at race start in Circuit.
+- **Extra Police Budget per Racer** replaces the four-racer multiplier. It adds
+  0–100% per starting racer. The default 25% doubles the ground-cop budget on a
+  four-racer grid. Heat progression and the existing vehicle ceiling still apply.
+
+Split-screen validation, larger grids, the two Chase modes, and matched
+performance testing are still pending. See the [macOS setup guide](docs/MODDED_PORT_SETUP.md).
 
 ## v0.2.0
 
