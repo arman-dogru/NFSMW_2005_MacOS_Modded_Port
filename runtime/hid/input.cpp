@@ -1066,12 +1066,22 @@ namespace hid
     void HandleEvent(const SDL_Event& e)
     {
         wheel::HandleEvent(e);  // a wheel coming or going
-        const bool autoDriveClick = e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&
-            e.gbutton.button == SDL_GAMEPAD_BUTTON_TOUCHPAD && s_gamepad &&
-            e.gbutton.which == SDL_GetGamepadID(s_gamepad);
         const bool autoDriveKey = e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat && e.key.scancode == SDL_SCANCODE_F6;
-        if ((autoDriveClick || autoDriveKey) && !s_blocked.load(std::memory_order_relaxed))
-            game::auto_drive::Toggle();
+        if (!s_blocked.load(std::memory_order_relaxed))
+        {
+            if (autoDriveKey)
+                game::auto_drive::Toggle(0);
+            else if (e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN && e.gbutton.button == SDL_GAMEPAD_BUTTON_TOUCHPAD)
+            {
+                if (s_gamepad && e.gbutton.which == SDL_GetGamepadID(s_gamepad))
+                    game::auto_drive::Toggle(0);
+                else if (s_slots.Split())
+                {
+                    const int user = s_slots.UserOf(e.gbutton.which);
+                    if (user > 0) game::auto_drive::Toggle(unsigned(user));
+                }
+            }
+        }
         if (e.type == SDL_EVENT_GAMEPAD_ADDED)
         {
             OpenFirstGamepad();

@@ -4,6 +4,6 @@
 
 namespace game::auto_drive
 {
-    void Toggle();
+    void Toggle(unsigned user);
     void Update(uint8_t* base);
 }
