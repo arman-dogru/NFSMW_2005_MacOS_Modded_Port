@@ -3,6 +3,7 @@
 #include "auto_drive.h"
 #include "fair_cops.h"
 #include "race_police.h"
+#include "split_race_bust.h"
 #include <kernel/function.h>
 #include <region/region.h>
 #include <bit>
@@ -104,6 +105,7 @@ PPC_FUNC(sub_823AFE20)
 {
     game::race_police::UpdateStartingHeat(base);
     game::auto_drive::Update(base);
+    game::split_race_bust::Update(base);
     if (enabled && region::Current() == region::Release::Usa)
     {
         const bool active = InRace(base);

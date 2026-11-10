@@ -116,3 +116,40 @@ to log the selected slot count, loaded opponent list length, and difficulty.
 Each physical DualSense touchpad successfully handed a different split-screen
 car to the stock AI. The user confirmed Auto Drive in that Circuit. Test each
 controller's return to manual and try the toggle during free roam.
+
+## Split-screen bust after finishing, 2026-11-10
+
+The first two-controller race verified starting heat 3 for both drivers and
+active pursuit cops. The log contained no bust interception or finish result.
+The first hook compared a registered racer handle with a Simable pointer.
+The revised hook checks the stock `MPerpBusted` message at `0x82118900` and
+compares its handle at +`0x10` with the registered handle in the race roster.
+It drops the arrest message only for a finished local racer whose partner
+is still racing. The finished racer's viewport displays a waiting banner.
+
+Local logic checks covered either player, a bust before finishing, both
+players finished, a different message reason, and banner cleanup on race exit
+and restart. In the next two-controller run, check that the partner can finish
+and the standings retain the arrested driver's finish. The session log now
+records both racer finishes and arrest messages as `[split-race]` entries.
+
+The second playtest recorded Player 1's finish and subsequent arrest while
+Player 2 was still racing. The waiting banner appeared, but the screenshot
+showed the stock Restart Menu over both views. The pursuit task sends a
+second `MPerpBusted` message about three seconds after the arrest, with
+reason `0xFEA34C0A`. Its listener at `0x82136BB0` queues the busted transition.
+The hook now consumes that follow-up for the same racer handle even if the
+partner finishes during the delay. Local checks covered a mismatched handle,
+race exit during the delay, and resetting the pending message on restart.
+The revised path still needs a two-controller gameplay test.
+
+The next session recorded an arrest for Player 1 before either player
+finished. That case reached the original Restart Menu because the earlier
+interception required a finish. The revised hook uses the game's per-racer
+bust and vehicle-disable routines (`0x82333F50`, `0x823340B0`) for an
+unfinished driver and suppresses both frontend messages while their partner
+is still racing. Local checks confirmed the unfinished driver is marked
+busted, the finished driver's result is preserved, and a second bust with
+no remaining driver reaches the stock path. The following two-controller run logged Player 1’s mid-race arrest and
+confirmed suppression of the delayed menu while Player 2 was still racing.
+The user confirmed the fix. No finish result was recorded in that session.

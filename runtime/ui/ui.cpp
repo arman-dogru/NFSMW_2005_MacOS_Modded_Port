@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "cursor_idle.h"
 
+#include <game/split_race_bust.h>
 #include <hid/input.h>
 #include <hid/wheel.h>       // the settings chord and the menus from a steering wheel
 #include <hid/wheel_map.h>   // ...which buttons those are
@@ -1077,7 +1078,8 @@ namespace ui
             toastText = CurrentToastLocked();
         }
         bool toast = !toastText.empty();
-        if (!s_modal && !s_settingsOpen && !perf && !toast)
+        const unsigned waiting = game::split_race_bust::WaitingPlayers();
+        if (!s_modal && !s_settingsOpen && !perf && !toast && !waiting)
             return false;
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -1145,6 +1147,20 @@ namespace ui
         }
         if (toast)
             DrawToast(toastText);
+        if (waiting && !s_modal && !s_settingsOpen)
+        {
+            const char* message = "BUSTED  |  Waiting for the other player";
+            const ImVec2 size = ImGui::CalcTextSize(message);
+            ImDrawList* draw = ImGui::GetForegroundDrawList();
+            for (unsigned player = 0; player < 2; ++player)
+            {
+                if (!(waiting & (1u << player))) continue;
+                const float x = (io.DisplaySize.x - size.x) * 0.5f;
+                const float y = io.DisplaySize.y * (0.25f + player * 0.5f) - size.y * 0.5f;
+                draw->AddRectFilled(ImVec2(x - 12, y - 8), ImVec2(x + size.x + 12, y + size.y + 8), IM_COL32(16, 16, 16, 225), 5.0f);
+                draw->AddText(ImVec2(x, y), IM_COL32_WHITE, message);
+            }
+        }
         ImGui::Render();
         ImDrawData* data = ImGui::GetDrawData();
         s_frameBuilt = data && data->CmdLists.Size > 0;  // (CmdListsCount is obsolete in 1.92)

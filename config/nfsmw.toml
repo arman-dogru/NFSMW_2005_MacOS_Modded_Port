@@ -239,6 +239,14 @@ name = "CooperativeChaseSelected"
 address = 0x8255E400
 jump_address_on_true = 0x8255E404
 
+# Keep local arrests and their delayed menu transition from ending the race
+# while the other local racer is still driving.
+[[midasm_hook]]
+name = "SplitRaceKeepRunningAfterBust"
+address = 0x82118900
+registers = ["r3"]
+jump_address_on_true = 0x82118904
+
 # Deferred render-callback queue (0x82909650): lock-free producer/consumer
 # across threads with no barriers (see runtime/game/render_queue.cpp).
 # Release before each publish (the store of the write pointer), acquire
