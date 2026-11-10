@@ -176,6 +176,39 @@ functions = [
     { address = 0x822F33D8, size = 0x28 },
 ]
 
+# Custom Race Opponents row. The stock handler has already calculated its
+# value, but has not written it back to the selected quick-race options row.
+[[midasm_hook]]
+name = "RaceGridOpponentSelection"
+address = 0x82560D04
+registers = ["r9", "r10", "r11", "r31"]
+
+# Circuit and Sprint both construct the standard opponent/difficulty widgets
+# when their split-screen skip predicate is false.
+[[midasm_hook]]
+name = "RaceGridShowAIOptions"
+address = 0x8256207C
+registers = ["r10"]
+
+[[midasm_hook]]
+name = "RaceGridShowAIOptions"
+address = 0x825622DC
+registers = ["r10"]
+
+# The split-screen launch handler forces the custom opponent array length to
+# one. This slot accounts for the second human in the stock loader.
+[[midasm_hook]]
+name = "RaceGridSplitOpponentSlots"
+address = 0x8255F800
+registers = ["r7", "r10"]
+
+# Split screen supplies a session object that normally skips the AI creation
+# loop. Let the stock loop run when a custom split race requested opponents.
+[[midasm_hook]]
+name = "RaceGridAllowSplitAI"
+address = 0x823634B8
+registers = ["r7", "r11"]
+
 # Deferred render-callback queue (0x82909650): lock-free producer/consumer
 # across threads with no barriers (see runtime/game/render_queue.cpp).
 # Release before each publish (the store of the write pointer), acquire
