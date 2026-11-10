@@ -163,6 +163,24 @@ enter guest fields.
 | Quick Race Starting Heat | `0x821068E8` | The USA `SetWorldHeat` script resolves the human AI heat interface. Both vtables `0x82065610` and `0x820662D0` use the same setter (+8) and getter (+4, reads +`0x1C`). The latter was observed in a live Circuit. The native update sets heat once for each initialized local driver in Quick Race. |
 | Auto Drive | `0x820FF938`, `0x82366FD8` | ForceAIControl/ClearAIControl resolve the first or last local player via `0x82366FD8`, then query interface type `0x820E3D98`. The hook calls their stock setter on vtable `0x82066354` and reads its flag at +8. Constructor `0x820FF418` places that interface at AILocal +`0x8D0` and its IVehicle AI interface at +`0x50`. The runtime matches these interfaces against the live human car list. The split join screen stores XInput ports in FEDatabase +12/+13 through `0x822C4398`. Live presses engaged different cars on two DualSense controllers. |
 
+### Cooperative Chase investigation
+
+The first integration milestone is two playable local drivers in the city
+without race checkpoints or a finish. Verify both views, both input ports,
+traffic and world streaming with the cars separated before adding shared
+pursuit and scoring rules.
+
+- `0x822BDF78` constructs the stock `Free Roamer` setup. It reads its event
+  key from FEDatabase +`0x198`, sets the local driver count to one at
+  `0x822BE010`, and loops over FEDatabase port bytes +12 onward. Its driver
+  loop calls `0x822C50F8` and `0x824EF9A0` for car selection and setup. This
+  is a candidate for a two-driver prototype. The city streaming and HUD
+  paths still need verification with two local cars.
+- The script `ForcePursuitStart` resolves to `0x82365E88`, which builds an
+  `MForcePursuitStart` message through `0x820E9EE8`. Trace its receiver and
+  compare it with the live stock Challenge pursuit before using it to start
+  a co-op run.
+
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
 values at `0x828FB8D4` were considered but have no confirmed readers and are
