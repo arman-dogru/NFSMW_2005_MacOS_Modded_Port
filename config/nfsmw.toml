@@ -209,6 +209,36 @@ name = "RaceGridAllowSplitAI"
 address = 0x823634B8
 registers = ["r7", "r11"]
 
+# Reuse the race-type menu's unused split-screen Knockout slot for Chase.
+[[midasm_hook]]
+name = "CooperativeChaseShowOption"
+address = 0x8255DB5C
+registers = ["r10"]
+
+[[midasm_hook]]
+name = "CooperativeChaseOption"
+address = 0x8255DBC0
+registers = ["r5", "r6"]
+
+# Populate the stock course chooser with the verified pursuit event.
+[[midasm_hook]]
+name = "CooperativeChaseEvent"
+address = 0x8255E954
+registers = ["r27", "r19"]
+jump_address_on_true = 0x8255EB40
+
+# Reuse the direct split-screen car-selection path. Keep the pursuit's
+# police configuration instead of applying the stock split-race defaults.
+[[midasm_hook]]
+name = "CooperativeChaseCarSelection"
+address = 0x8255E3C8
+registers = ["r3"]
+
+[[midasm_hook]]
+name = "CooperativeChaseSelected"
+address = 0x8255E400
+jump_address_on_true = 0x8255E404
+
 # Deferred render-callback queue (0x82909650): lock-free producer/consumer
 # across threads with no barriers (see runtime/game/render_queue.cpp).
 # Release before each publish (the store of the write pointer), acquire

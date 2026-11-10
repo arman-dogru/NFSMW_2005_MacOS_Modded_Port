@@ -181,6 +181,19 @@ pursuit and scoring rules.
   compare it with the live stock Challenge pursuit before using it to start
   a co-op run.
 
+The first Chase prototype uses the stock pursuit event `0x7E8EDB81`. A manual
+Challenge Series run verified type 8, the pursuit flag, and four initial cops.
+The USA split-screen race-type builder exposes **Cooperative Chase** in its
+unused Knockout slot (`0x8255DB5C`, `0x8255DBC0`). The course builder inserts
+that one event (`0x8255E954`). The accept path reuses the stock two-car selector
+(`0x8255E3C8`) and preserves the event's police setup (`0x8255E400`).
+
+The ARM64 build linked and the settings, split views, player slots, FairCops,
+and police population tests passed. The prototype was opened via the modded
+launcher with an isolated profile and 1× internal resolution. Verify the menu,
+both cars and cameras, and stock pursuit activation together. Shared bounty,
+cooldown, bust rules, and pursuit-breaker work remain pending.
+
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
 values at `0x828FB8D4` were considered but have no confirmed readers and are
