@@ -189,10 +189,19 @@ that one event (`0x8255E954`). The accept path reuses the stock two-car selector
 (`0x8255E3C8`) and preserves the event's police setup (`0x8255E400`).
 
 The ARM64 build linked and the settings, split views, player slots, FairCops,
-and police population tests passed. The prototype was opened via the modded
-launcher with an isolated profile and 1× internal resolution. Verify the menu,
-both cars and cameras, and stock pursuit activation together. Shared bounty,
-cooldown, bust rules, and pursuit-breaker work remain pending.
+and police population tests passed. The two-controller playtest loaded both
+cars into the city and returned to the stock restart/leave menu after a bust.
+The log confirmed two distinct human vehicles and that the active cops
+shared one pursuit and targeted the first vehicle.
+
+The user reported that one car was replaced by the Challenge car. The
+Challenge objective appeared and told them to evade after completion. Pursuit
+HUD, heat, music, and pursuit-breaker map markers were absent. Auto Drive
+would not release. The log recorded no native Auto Drive handoff in that run,
+so the source of the forced driving is still unverified. FairCops currently
+rejects rosters with two local drivers. Adapt its assignment and sight logic
+for this event before validating shared cooldown, bounty, and both bust paths.
+Pursuit-breaker work follows the core co-op chase.
 
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
