@@ -203,6 +203,24 @@ rejects rosters with two local drivers. Adapt its assignment and sight logic
 for this event before validating shared cooldown, bounty, and both bust paths.
 Pursuit-breaker work follows the core co-op chase.
 
+### Pursuit dispatch in competitive split-screen races
+
+FairCops previously discarded the entire snapshot when it found a second
+local driver. The split-screen adapter now uses the active race roster to
+exclude retired drivers and admit both local drivers. It keeps the first
+responder with the driver named by each stock pursuit. Extra ground units can
+target another eligible nearby racer. Existing assignments stay in place
+until their target becomes ineligible or the cop leaves the pursuit.
+
+Sight probes use each pursuit's formal local target, and the pursuit update
+only consumes samples for that driver and pursuit. Assignment logs include
+the cop, target car, and stock pursuit. This pass uses existing stock pursuits.
+A two-controller race recorded a separate stock pursuit for Player 2 and one
+ground cop in that pursuit before Player 2's arrest. The other player stayed
+in the race, and the log confirmed that the delayed Restart menu was suppressed.
+The log did not sample the distance between players. Cooldown HUD behavior
+still needs a live test.
+
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning
 values at `0x828FB8D4` were considered but have no confirmed readers and are

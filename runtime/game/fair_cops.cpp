@@ -3,6 +3,7 @@
 // Xbox evidence, supported layouts, and outstanding tests: docs/NATIVE_MODS.md.
 #include <stdafx.h>
 #include "fair_cops.h"
+#include "split_screen.h"
 #include <kernel/function.h>
 #include <region/region.h>
 #include <report/report.h>
@@ -99,12 +100,14 @@ namespace
         Id id = 0;
         uint32_t vehicle = 0, ai = 0;
         Position position{};
+        bool local = false;
     };
     struct Assignment
     {
         Id cop = 0, racer = 0;
         uint32_t ai = 0, pursuit = 0;
         float lastProbe = -1, seenPlayer = -1;
+        Id probedPlayer = 0;
         uint8_t playerHidden = 0;
         bool reinforcement = false;
     };
@@ -113,12 +116,19 @@ namespace
         std::array<Actor, kMaxRacers> racers{};
         std::array<Assignment, kMaxCops> assignments{};
         size_t count = 0, probeCursor = 0;
-        uint32_t manager = 0, playerPursuit = 0, pendingContact = 0;
+        uint32_t manager = 0, playerPursuit = 0, pendingContact = 0, splitRace = 0;
         Id player = 0;
         float time = 0;
     };
     thread_local World world;
     thread_local uint32_t sightTarget = 0;
+
+    void LogSplitAssignment(uint32_t cop, const Actor& target, uint32_t pursuit)
+    {
+        if (s_log && world.splitRace)
+            fprintf(stderr, "[fair-cops] split cop=%08X target=%08X local=%u pursuit=%08X\n",
+                cop, target.vehicle, unsigned(target.local), pursuit);
+    }
 
     uint32_t Simable(uint32_t vehicle) { return vehicle - 0x94; }
     float ReadFloat(const uint8_t* base, uint32_t address)
@@ -164,6 +174,19 @@ namespace
             if (Simable(racer.vehicle) == simable) return &racer;
         return nullptr;
     }
+    uint32_t OwnPursuit(const uint8_t* base, const Actor& player)
+    {
+        if (!Pointer(player.ai)) return 0;
+        const uint32_t vt = Read32(base, player.ai);
+        if (!Pointer(vt, 0xA4) || Read32(base, vt + 0xA0) != 0x820E90F8) return 0;
+        const uint32_t pursuit = Read32(base, player.ai + 0x84);
+        return FormalTarget(base, pursuit) == Simable(player.vehicle) ? pursuit : 0;
+    }
+    const Actor* PursuedLocal(const uint8_t* base, uint32_t pursuit)
+    {
+        const auto* racer = RacerBySimable(FormalTarget(base, pursuit));
+        return racer && racer->local ? racer : nullptr;
+    }
     Assignment* FindAssignment(uint32_t ai)
     {
         for (auto& assignment : world.assignments)
@@ -186,24 +209,29 @@ namespace
             }
         return nullptr;
     }
-    Id Choose(const Position* origin, const Assignment* exclude = nullptr)
+    Id Choose(const uint8_t* base, uint32_t pursuit, const Position* origin, const Assignment* exclude = nullptr)
     {
         std::array<Candidate, kMaxRacers> candidates{};
+        size_t count = 0;
         for (size_t i = 0; i < world.count; ++i)
         {
             const auto& racer = world.racers[i];
+            if (world.splitRace && racer.local)
+            {
+                const uint32_t own = OwnPursuit(base, racer);
+                if (own && own != pursuit) continue;
+            }
             unsigned coverage = 0;
             for (const auto& entry : world.assignments)
                 coverage += &entry != exclude && entry.racer == racer.id;
-            candidates[i] = {racer.id, racer.position, coverage};
+            candidates[count++] = {racer.id, racer.position, coverage};
         }
-        return Dispatch(std::span(candidates).first(world.count), origin);
+        return Dispatch(std::span(candidates).first(count), origin);
     }
-    bool PlayerCovered(const Assignment* exclude = nullptr)
+    bool PlayerCovered(Id player, uint32_t pursuit, const Assignment* exclude = nullptr)
     {
-        if (!world.player || !world.playerPursuit) return false;
         for (const auto& entry : world.assignments)
-            if (&entry != exclude && entry.racer == world.player && entry.pursuit == world.playerPursuit)
+            if (&entry != exclude && entry.racer == player && entry.pursuit == pursuit)
                 return true;
         return false;
     }
@@ -229,6 +257,9 @@ namespace
         }
         const uint32_t count = Read32(base, 0x82C6F194), data = Read32(base, 0x82C6F18C);
         if (count > 512 || !Pointer(data, count * 4)) { world = {}; return; }
+        const bool split = game::split_screen::GameSaysSplit();
+        if (split && !IsCompetitiveRace(base)) { world = {}; return; }
+        const uint32_t splitRace = split ? Read32(base, 0x82A2CB18) : 0;
         Id player = 0;
         for (uint32_t i = 0; i < count; ++i)
         {
@@ -236,34 +267,31 @@ namespace
             if (!Pointer(vehicle) || Read32(base, vehicle) != 0x8208AD18) continue;
             const uint32_t driver = Read32(base, vehicle + 0x9C);
             if ((driver != 0 && driver != 3) || !Live(base, vehicle)) continue;
+            if (splitRace)
+            {
+                const uint32_t racer = GuestToHostFunction<uint32_t>(0x8232F7F0u, splitRace, Simable(vehicle));
+                if (!Pointer(racer, 0x22) || std::any_of(base + racer + 0x1C, base + racer + 0x22,
+                    [](uint8_t flag) { return flag != 0; })) continue;
+            }
             Actor racer{Identity(vehicle), vehicle, Read32(base, vehicle + 0x54)};
             if (!racer.id || !ReadPosition(base, vehicle, racer.position)) continue;
-            if (world.count == world.racers.size() || (driver == 0 && player)) { world = {}; return; }
+            racer.local = driver == 0;
+            if (world.count == world.racers.size() || (racer.local && player && !splitRace)) { world = {}; return; }
             world.racers[world.count++] = racer;
-            if (driver == 0) player = racer.id;
+            if (racer.local && !player) player = racer.id;
         }
         const float now = ReadFloat(base, 0x82A153B8);
         if (!player || !std::isfinite(now)) { world = {}; return; }
-        if (world.manager != manager || world.player != player || now < world.time)
+        if (world.manager != manager || world.splitRace != splitRace || (!splitRace && world.player != player) || now < world.time)
         {
             world.assignments = {};
             world.probeCursor = 0;
         }
         world.manager = manager;
+        world.splitRace = splitRace;
         world.player = player;
         world.time = now;
-        world.playerPursuit = 0;
-        const uint32_t ai = Racer(player)->ai;
-        if (Pointer(ai))
-        {
-            const uint32_t vt = Read32(base, ai);
-            if (Pointer(vt, 0xA4) && Read32(base, vt + 0xA0) == 0x820E90F8)
-            {
-                const uint32_t pursuit = Read32(base, ai + 0x84);
-                if (FormalTarget(base, pursuit) == Simable(Racer(player)->vehicle))
-                    world.playerPursuit = pursuit;
-            }
-        }
+        world.playerPursuit = OwnPursuit(base, *Racer(player));
     }
     void Assign(uint8_t* base)
     {
@@ -297,21 +325,28 @@ namespace
             if (!target)
             {
                 const auto* stock = RacerBySimable(TargetSimable(base, Read32(base, cop.ai + 0x68)));
+                const auto* local = world.splitRace ? PursuedLocal(base, pursuit) : nullptr;
                 // Native contact already chose a driver. Only a free reinforcement
                 // or a unit whose previous target disappeared needs dispatch.
-                if (!entry->racer && !entry->reinforcement && stock)
+                // In split screen stock also points every new unit in a local
+                // pursuit at its owner, so dispatch those after the first one.
+                if (!entry->racer && !entry->reinforcement && stock && (!local || stock != local))
                     target = stock;
-                else if (pursuit == world.playerPursuit && !PlayerCovered(entry))
+                else if (local && !PlayerCovered(local->id, pursuit, entry))
+                    target = local;
+                else if (!world.splitRace && pursuit == world.playerPursuit &&
+                    !PlayerCovered(world.player, pursuit, entry))
                     target = Racer(world.player);
                 else
                 {
                     Position position;
-                    if (ReadPosition(base, cop.vehicle, position)) target = Racer(Choose(&position, entry));
+                    if (ReadPosition(base, cop.vehicle, position)) target = Racer(Choose(base, pursuit, &position, entry));
                     if (!target) target = stock;
                 }
             }
             if (target && Acquire(base, cop.ai, Simable(target->vehicle)))
             {
+                if (entry->racer != target->id) LogSplitAssignment(cop.vehicle, *target, pursuit);
                 entry->racer = target->id;
                 entry->reinforcement = false;
             }
@@ -334,25 +369,37 @@ namespace
     {
         const auto* player = Racer(world.player);
         if (!player) return;
-        const bool allowRequest = !world.playerPursuit && IsCompetitiveRace(base);
-        if (!world.playerPursuit && !allowRequest) return;
-        const uint32_t simable = Simable(player->vehicle);
+        const bool allowRequest = !world.splitRace && !world.playerPursuit && IsCompetitiveRace(base);
+        if (!world.splitRace && !world.playerPursuit && !allowRequest) return;
+        Id cachedPlayer = 0;
         uint32_t target = 0;
         unsigned probes = 0;
         for (size_t i = 0; i < kMaxCops && probes < 8; ++i)
         {
             auto& entry = world.assignments[world.probeCursor++ % kMaxCops];
-            if (!entry.cop || !entry.racer || entry.racer == world.player ||
+            if (!entry.cop || !entry.racer ||
                 (entry.lastProbe >= 0 && world.time - entry.lastProbe < 0.25f) ||
                 !CopAI(base, entry.ai) || Read32(base, entry.ai + 0x84) != entry.pursuit ||
                 FormalTarget(base, entry.pursuit) == 0) continue;
+            const auto* owner = world.splitRace ? PursuedLocal(base, entry.pursuit) : player;
+            if (!owner || entry.racer == owner->id) continue;
             const auto* driver = Racer(entry.racer);
             const uint32_t cop = Read32(base, entry.ai - 0x1C) + 0x94;
             if (!driver || !Live(base, cop) || Read32(base, cop + 0x54) != entry.ai ||
                 TargetSimable(base, Read32(base, entry.ai + 0x68)) != Simable(driver->vehicle)) continue;
             entry.lastProbe = world.time;
-            if (!target) target = PlayerProbeTarget(base, simable);
+            if (cachedPlayer != owner->id)
+            {
+                target = PlayerProbeTarget(base, Simable(owner->vehicle));
+                cachedPlayer = owner->id;
+            }
             if (!target) return;
+            if (entry.probedPlayer != owner->id)
+            {
+                entry.probedPlayer = owner->id;
+                entry.playerHidden = 0;
+                entry.seenPlayer = -1;
+            }
             ++probes;
             auto& hidden = base[entry.ai + 0x864];
             const uint8_t saved = hidden;
@@ -381,10 +428,9 @@ bool IsCompetitiveRace(uint8_t* base)
 uint32_t SpawnAnchor(uint8_t* base, uint32_t pursuit)
 {
     if (!Enabled() || world.count < 2 || !Pursuit(base, pursuit)) return 0;
-    const auto* player = Racer(world.player);
-    if (player && FormalTarget(base, pursuit) == Simable(player->vehicle) &&
-        (pursuit != world.playerPursuit || !PlayerCovered())) return 0;
-    const auto* racer = Racer(Choose(nullptr));
+    if (const auto* owner = PursuedLocal(base, pursuit);
+        owner && (OwnPursuit(base, *owner) != pursuit || !PlayerCovered(owner->id, pursuit))) return 0;
+    const auto* racer = Racer(Choose(base, pursuit, nullptr));
     return racer && Live(base, racer->vehicle) ? racer->vehicle : 0;
 }
 
@@ -405,6 +451,7 @@ void Spawned(uint8_t* base, uint32_t cop, uint32_t anchor)
         {
             entry->racer = racer->id;
             entry->reinforcement = false;
+            LogSplitAssignment(cop, *racer, pursuit);
         }
     }
 }
@@ -520,15 +567,16 @@ PPC_FUNC(sub_82117950)
     if (Enabled() && Pointer(task) && ctx.r4.u32 == Read32(base, task + 0x4C))
     {
         sightTarget = FormalTarget(base, task + 0x40);
-        const auto* player = Racer(world.player);
+        const auto* player = world.splitRace ? PursuedLocal(base, task + 0x40) : Racer(world.player);
         if (player && sightTarget == Simable(player->vehicle) &&
-            task + 0x40 == world.playerPursuit)
+            (world.splitRace || task + 0x40 == world.playerPursuit))
         {
             const float now = ReadFloat(base, 0x82A153B8);
             float age = ReadFloat(base, task + 0x168);
             for (const auto& entry : world.assignments)
             {
-                if (!entry.cop || entry.seenPlayer < 0 || now < entry.seenPlayer ||
+                if (!entry.cop || entry.probedPlayer != player->id || (world.splitRace && entry.pursuit != task + 0x40) ||
+                    entry.seenPlayer < 0 || now < entry.seenPlayer ||
                     now - entry.seenPlayer > 0.5f || !CopAI(base, entry.ai) ||
                     Read32(base, entry.ai + 0x84) != entry.pursuit) continue;
                 age = std::min(age, now - entry.seenPlayer);
