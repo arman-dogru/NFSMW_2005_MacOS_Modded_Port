@@ -1,6 +1,7 @@
 // SpeedBreaker. GPL-3.0-or-later (see COPYING).
 #include <stdafx.h>
 #include "auto_drive.h"
+#include "cooperative_chase.h"
 #include "fair_cops.h"
 #include "split_screen.h"
 #include <kernel/function.h>
@@ -74,13 +75,15 @@ void Update(uint8_t* base)
     if ((!toggles && !ownedVehicle[0] && !ownedVehicle[1]) || region::Current() != region::Release::Usa)
         return;
 
-    const unsigned players = Read32(base, 0x82C74BDC);
     const uint32_t database = Read32(base, split_screen::kDatabasePointer);
     const bool split = split_screen::PlausibleObject(database) &&
         split_screen::Decode(base[database], Read32(base, database + split_screen::kFlagsOffset));
+    const unsigned players = Read32(base, 0x82C74BDC);
     if (players != (split ? 2u : 1u))
     {
         ownedVehicle[0] = ownedVehicle[1] = 0;
+        if (toggles && split)
+            fprintf(stderr, "[auto-drive] ignored split request: %u registered local players\n", players);
         return;
     }
 
@@ -97,13 +100,17 @@ void Update(uint8_t* base)
         if (!vehicle || RaceHandedOff(base, vehicle))
         {
             owned = 0;
+            if (toggle && split)
+                fprintf(stderr, "[auto-drive] ignored player %u request (control=%08X, vehicle=%08X)\n",
+                    player + 1, control, vehicle);
             continue;
         }
         if (owned != vehicle || !base[control + 8]) owned = 0;
         if (!toggle || !Read32(base, vehicle + 0xB4)) continue;
 
-        const bool enable = owned == 0;
-        if (enable && base[control + 8]) continue; // A stock sequence already owns the car.
+        const bool aiDriving = base[control + 8] != 0;
+        if (aiDriving && !owned && !cooperative_chase::Active(base)) continue;
+        const bool enable = !aiDriving;
         GuestToHostFunction<void>(0x820FF938u, control, unsigned(enable));
         if (bool(base[control + 8]) == enable)
         {

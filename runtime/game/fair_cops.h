@@ -41,4 +41,5 @@ namespace game::fair_cops
     uint32_t SpawnAnchor(uint8_t* base, uint32_t pursuit);
     void Spawned(uint8_t* base, uint32_t cop, uint32_t anchor);
     bool IsCompetitiveRace(uint8_t* base);
+    unsigned LocalPursuitPlayers(uint8_t* base);
 }

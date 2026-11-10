@@ -198,10 +198,34 @@ The user reported that one car was replaced by the Challenge car. The
 Challenge objective appeared and told them to evade after completion. Pursuit
 HUD, heat, music, and pursuit-breaker map markers were absent. Auto Drive
 would not release. The log recorded no native Auto Drive handoff in that run,
-so the source of the forced driving is still unverified. FairCops currently
-rejects rosters with two local drivers. Adapt its assignment and sight logic
-for this event before validating shared cooldown, bounty, and both bust paths.
-Pursuit-breaker work follows the core co-op chase.
+so the source of the forced driving is still unverified.
+
+One playtest reproduced the first car being replaced by the Challenge preset.
+The check at `0x8246CD10` belongs to a per-player UI update and did not log a
+hit in either playtest. The hook was removed. Physical car creation remains
+under investigation.
+
+The two-controller tests confirmed Auto Drive engaged and released on
+each controller. FairCops logged two starting ground cops targeting each car,
+all in Player 1's stock pursuit. The adapter now tries to seed Player 2's own
+pursuit with one assigned ground cop, releasing it through `0x820E9770` and
+using the manager's pending cop slot at +`0xC0`. The stock updater
+`0x820F0270` consumes the request and creates or joins the pursuit. A per-view
+indicator reads each local car's formal pursuit. The co-op scope suppresses
+the `ChallengeComplete` script handler (`0x823670A0`), which sets the solo
+objective completion flag.
+
+A live run confirmed distinct stock pursuit objects for the two players. The
+user also reported seeing pursuit breakers. When Player 2's pursuit ended,
+`0x820EFA58` called `0x822C8A68` with player index 1. The garage lookup at
+FEDatabase +`0x14` returned null, and the stock loop dereferenced `0x42D`.
+The hook skips this cleanup when a local split-screen player has no garage.
+The pursuit's own teardown still runs. A native check exercised the missing
+garage and five pass-through cases. On the live retest, Player 2 entered a
+separate pursuit and the missing-garage guard ran when that pursuit ended.
+The game recorded both finish events and closed normally. Shared cooldown,
+bounty, both bust paths, and breaker activation and map coverage still need
+validation.
 
 ### Pursuit dispatch in competitive split-screen races
 

@@ -1,5 +1,7 @@
 // SpeedBreaker. GPL-3.0-or-later (see COPYING).
 #include <stdafx.h>
+#include "cooperative_chase.h"
+#include "fair_cops.h"
 #include "split_screen.h"
 #include <kernel/function.h>
 #include <kernel/heap.h>
@@ -7,6 +9,7 @@
 #include <region/region.h>
 
 extern "C" PPC_FUNC(__imp__sub_822BCE58);
+extern "C" PPC_FUNC(__imp__sub_823670A0);
 
 namespace
 {
@@ -14,6 +17,8 @@ namespace
     constexpr uint32_t kChallengeType = 8;
     constexpr uint32_t kPursuitEvent = 0x7E8EDB81;
     constexpr uint32_t kChaseLabel = 0xCF10C0DE;
+    constexpr uint32_t kRaceTypeGetter = 0x8233A028;
+    std::atomic<unsigned> pursuitPlayers{0};
 
     uint32_t Read32(const uint8_t* base, uint32_t address)
     {
@@ -32,6 +37,37 @@ bool CooperativeChaseSelected()
     const auto* base = g_memory.base;
     const uint32_t db = Read32(base, game::split_screen::kDatabasePointer);
     return Read32(base, db + kRaceTypeOffset) == kChallengeType;
+}
+
+bool game::cooperative_chase::Active(const uint8_t* base)
+{
+    if (!SplitScreenUSA()) return false;
+    const uint32_t race = Read32(base, 0x82A2CB18);
+    if (!split_screen::PlausibleObject(race) || Read32(base, race + 0x1A28) != 1) return false;
+    const uint32_t params = Read32(base, race + 0x1A30);
+    return split_screen::PlausibleObject(params) &&
+        GuestToHostFunction<uint32_t>(kRaceTypeGetter, params) == kChallengeType &&
+        (GuestToHostFunction<uint32_t>(0x82337E60u, params) & 0xFF);
+}
+
+void game::cooperative_chase::Update(uint8_t* base)
+{
+    const bool active = Active(base);
+    const unsigned players = active ? fair_cops::LocalPursuitPlayers(base) : 0;
+    const unsigned previous = pursuitPlayers.load(std::memory_order_relaxed);
+    if (players == previous) return;
+    pursuitPlayers.store(players, std::memory_order_relaxed);
+    static const bool log = [] {
+        const char* value = std::getenv("NFSMW_FAIRCOPS_LOG");
+        return value && std::strcmp(value, "1") == 0;
+    }();
+    if (log && active)
+        fprintf(stderr, "[coop-chase] formal pursuits player1=%u player2=%u\n", players & 1, (players >> 1) & 1);
+}
+
+unsigned game::cooperative_chase::PursuitPlayers()
+{
+    return pursuitPlayers.load(std::memory_order_relaxed);
 }
 
 void CooperativeChaseShowOption(PPCRegister& skipKnockout)
@@ -76,6 +112,13 @@ void CooperativeChaseCarSelection(PPCRegister& type)
     // This is only the comparison that routes Drag to the two-car selector.
     // The actual event still has its original Challenge Series race type.
     if (type.u32 == kChallengeType && CooperativeChaseSelected()) type.u64 = 2;
+}
+
+PPC_FUNC(sub_823670A0)
+{
+    // The event's solo objective calls ChallengeComplete to mark GRacerInfo.
+    // The co-op session keeps running when that inherited objective is met.
+    if (!game::cooperative_chase::Active(base)) __imp__sub_823670A0(ctx, base);
 }
 
 PPC_FUNC(sub_822BCE58)

@@ -3,6 +3,16 @@
 Modded Port release notes appear first, followed by the upstream SpeedBreaker
 changelog. The in-game What's New panel uses the upstream engine version.
 
+## Unreleased (macOS Modded Port)
+
+- Both local players can toggle Auto Drive on their own DualSense controller.
+- In split-screen races, one player can be busted while the other keeps racing.
+- The USA Cooperative Chase prototype starts separate pursuits for the two
+  local players and displays a pursuit indicator on each view. A live test
+  verified Player 2's pursuit could end without a crash.
+- Cooperative Chase still uses a Challenge Series event. The first car can
+  be replaced by its preset. Shared scoring and the final co-op rules are pending.
+
 ## v1.1.1 (macOS Modded Port)
 
 - **Auto Drive** lets the stock AI drive your car during a solo race. Click the

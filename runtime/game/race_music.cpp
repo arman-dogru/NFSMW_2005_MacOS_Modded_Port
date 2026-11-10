@@ -1,6 +1,7 @@
 // SpeedBreaker. GPL-3.0-or-later (see COPYING).
 #include <stdafx.h>
 #include "auto_drive.h"
+#include "cooperative_chase.h"
 #include "fair_cops.h"
 #include "race_police.h"
 #include "split_race_bust.h"
@@ -105,6 +106,7 @@ PPC_FUNC(sub_823AFE20)
 {
     game::race_police::UpdateStartingHeat(base);
     game::auto_drive::Update(base);
+    game::cooperative_chase::Update(base);
     game::split_race_bust::Update(base);
     if (enabled && region::Current() == region::Release::Usa)
     {

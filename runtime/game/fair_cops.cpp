@@ -2,6 +2,7 @@
 // USA-only guest adapter for the native FairCops assignment policy.
 // Xbox evidence, supported layouts, and outstanding tests: docs/NATIVE_MODS.md.
 #include <stdafx.h>
+#include "cooperative_chase.h"
 #include "fair_cops.h"
 #include "split_screen.h"
 #include <kernel/function.h>
@@ -119,6 +120,8 @@ namespace
         uint32_t manager = 0, playerPursuit = 0, pendingContact = 0, splitRace = 0;
         Id player = 0;
         float time = 0;
+        bool cooperative = false;
+        bool partnerStarted = false;
     };
     thread_local World world;
     thread_local uint32_t sightTarget = 0;
@@ -258,7 +261,8 @@ namespace
         const uint32_t count = Read32(base, 0x82C6F194), data = Read32(base, 0x82C6F18C);
         if (count > 512 || !Pointer(data, count * 4)) { world = {}; return; }
         const bool split = game::split_screen::GameSaysSplit();
-        if (split && !IsCompetitiveRace(base)) { world = {}; return; }
+        const bool coop = split && cooperative_chase::Active(base);
+        if (split && !coop && !IsCompetitiveRace(base)) { world = {}; return; }
         const uint32_t splitRace = split ? Read32(base, 0x82A2CB18) : 0;
         Id player = 0;
         for (uint32_t i = 0; i < count; ++i)
@@ -267,7 +271,8 @@ namespace
             if (!Pointer(vehicle) || Read32(base, vehicle) != 0x8208AD18) continue;
             const uint32_t driver = Read32(base, vehicle + 0x9C);
             if ((driver != 0 && driver != 3) || !Live(base, vehicle)) continue;
-            if (splitRace)
+            if (coop && driver != 0) continue;
+            if (splitRace && !coop)
             {
                 const uint32_t racer = GuestToHostFunction<uint32_t>(0x8232F7F0u, splitRace, Simable(vehicle));
                 if (!Pointer(racer, 0x22) || std::any_of(base + racer + 0x1C, base + racer + 0x22,
@@ -282,13 +287,18 @@ namespace
         }
         const float now = ReadFloat(base, 0x82A153B8);
         if (!player || !std::isfinite(now)) { world = {}; return; }
-        if (world.manager != manager || world.splitRace != splitRace || (!splitRace && world.player != player) || now < world.time)
+        // Wait for both selected cars before locking in the starting cops.
+        if (coop && world.count != 2 && world.splitRace != splitRace) { world = {}; return; }
+        if (world.manager != manager || world.splitRace != splitRace || world.cooperative != coop ||
+            ((!splitRace || coop) && world.player != player) || now < world.time)
         {
             world.assignments = {};
             world.probeCursor = 0;
+            world.partnerStarted = false;
         }
         world.manager = manager;
         world.splitRace = splitRace;
+        world.cooperative = coop;
         world.player = player;
         world.time = now;
         world.playerPursuit = OwnPursuit(base, *Racer(player));
@@ -412,6 +422,39 @@ namespace
             if (allowRequest && !world.pendingContact) world.pendingContact = entry.ai;
         }
     }
+
+    void RequestCooperativePartner(uint8_t* base, uint32_t manager)
+    {
+        if (!world.cooperative || world.partnerStarted || world.count != 2 ||
+            world.manager != manager || !world.playerPursuit || Read32(base, manager + 0xC0)) return;
+        const auto& partner = world.racers[1];
+        if (OwnPursuit(base, partner))
+        {
+            world.partnerStarted = true;
+            if (s_log) fprintf(stderr, "[coop-chase] partner pursuit active for %08X\n", partner.vehicle);
+            return;
+        }
+
+        for (auto& entry : world.assignments)
+        {
+            if (entry.racer != partner.id || entry.pursuit != world.playerPursuit ||
+                !CopAI(base, entry.ai) || Read32(base, entry.ai + 0x84) != entry.pursuit ||
+                !PlayerCovered(world.player, entry.pursuit, &entry)) continue;
+            const uint32_t ai = entry.ai;
+            const uint32_t cop = Read32(base, ai - 0x1C) + 0x94;
+            if (!Live(base, cop) || Read32(base, cop + 0x54) != ai ||
+                TargetSimable(base, Read32(base, ai + 0x68)) != Simable(partner.vehicle)) continue;
+            if (!(GuestToHostFunction<uint32_t>(0x820E9770u, entry.pursuit, cop) & 0xFF)) continue;
+            // The stock pursuit updater consumes the cop request, using its
+            // current AITarget to find or create the matching pursuit.
+            if (Acquire(base, ai, Simable(partner.vehicle), -0.25f))
+            {
+                PPC_STORE_U32(manager + 0xC0, cop);
+                if (s_log) fprintf(stderr, "[coop-chase] requested partner pursuit with cop %08X\n", cop);
+            }
+            return;
+        }
+    }
 }
 
 bool IsCompetitiveRace(uint8_t* base)
@@ -423,6 +466,21 @@ bool IsCompetitiveRace(uint8_t* base)
         (GuestToHostFunction<uint32_t>(0x82337E60u, parms) & 0xFF) ||
         (GuestToHostFunction<uint32_t>(0x82337C80u, parms) & 0xFF)) return false;
     return GuestToHostFunction<uint32_t>(0x8233A028u, parms) <= 8;
+}
+
+unsigned LocalPursuitPlayers(uint8_t* base)
+{
+    const uint32_t list = Read32(base, 0x82C6F1EC);
+    if (Read32(base, 0x82C6F1F4) != 2 || !Pointer(list, 8)) return 0;
+    unsigned result = 0;
+    for (unsigned player = 0; player < 2; ++player)
+    {
+        const uint32_t vehicle = Read32(base, list + player * 4);
+        if (!Pointer(vehicle) || Read32(base, vehicle) != 0x8208AD18 ||
+            !Read32(base, vehicle + 0xB4) || Read32(base, vehicle + 0x9C) != 0) continue;
+        if (OwnPursuit(base, Actor{0, vehicle, Read32(base, vehicle + 0x54)})) result |= 1u << player;
+    }
+    return result;
 }
 
 uint32_t SpawnAnchor(uint8_t* base, uint32_t pursuit)
@@ -461,6 +519,7 @@ void Spawned(uint8_t* base, uint32_t cop, uint32_t anchor)
 PPC_FUNC(sub_820F0270)
 {
     using namespace game::fair_cops;
+    if (Enabled() && ctx.lr == 0x820F2380) RequestCooperativePartner(base, ctx.r3.u32);
     __imp__sub_820F0270(ctx, base);
     if (!Enabled()) return;
     if (!s_log)
