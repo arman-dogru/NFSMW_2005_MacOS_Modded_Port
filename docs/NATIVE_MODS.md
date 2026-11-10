@@ -124,13 +124,19 @@ The local hash was rechecked. The installed `game/files` symlink is preserved.
 Local image/disassembly and scratch analysis remain in ignored
 `build/private-analysis/`. Do not commit or share those files.
 
-Native hooks replace the generated weak USA wrappers and call their original
-`__imp__` bodies. Generated files and `config/nfsmw.toml` need no edits or
-regeneration. PAL retains its own wrappers. All guest pointers are 32-bit;
-fields and pointers are big-endian. Native pointers never enter guest fields.
+Most native hooks replace generated weak USA wrappers and call their original
+`__imp__` bodies. The race-grid hooks also patch individual instructions via
+`config/nfsmw.toml`. Regenerate the USA `ppc/` output before rebuilding an
+existing checkout that predates those hooks. PAL retains its own wrappers.
+Guest pointers are 32-bit and fields are big-endian. Native pointers never
+enter guest fields.
 
 | Function or structure | USA address/offset | Supporting evidence |
 |---|---|---|
+| Quick Race opponent selector | `0x82560D04` | The stock handler receives the selected FEDatabase row in r9 and the action hash in r31. Before it writes the opponent count to row +`0x23`, the hook applies the solo 1–5 or split-screen 0–4 range in Circuit and Sprint. |
+| Split-screen opponent and difficulty rows | `0x8256207C`, `0x825622DC` | Circuit and Sprint normally skip the standard rows with two local players. Clear that branch predicate to let the stock code construct both rows. `0x822C4FB8` copies difficulty from row +`0x24` through `0x8233BC10`. |
+| Split-screen opponent slots | `0x8255F800` | The stock split launch writes one slot to custom race +`0x18`. The hook sets it to the selected AI count plus one. The loader at `0x823634F8` reads the opponent list length, then accounts for the extra human before spawning AI. |
+| Split-screen AI creation gate | `0x823634B8` | Stock checks the session pointer at `0x82A2D274` before creating AI. Live split Circuit had a five-slot list and Hard difficulty but skipped the loop with a nonzero session pointer. Enable the stock loop for a supported split setup with two to five opponent slots. |
 | AICopManager constructor | `0x820EA958`, root vtable `0x82065C9C` | Registers the `AICopManager` task/name; vtable observed live. |
 | Manager task | `0x820F2320` | Receives root+8, subtracts 8, calls pursuit update at `0x820F237C`. |
 | Pursuit update | `0x820F0270` | Traverses cops and pursuit collections; native balancing runs after original. Live calls observed in Circuit and Challenge pursuits. |
@@ -155,7 +161,7 @@ fields and pointers are big-endian. Native pointers never enter guest fields.
 | Raw attribute lookup | `0x82148818` | Some loader reads bypass getters. Composed with existing language hook, returns private values for CopsInRace and CopDensity only; heat passes through. |
 | Race Police Off | `0x823380E0` caller return `0x8233997C`, `0x8233A738` caller return `0x82339790`, `0x820EB6A8` | Zero the serialized race flag and density and deny the stock CanSpawn result for active competitive races. Other uses of the getters and spawn checks keep their normal results. |
 | Quick Race Starting Heat | `0x821068E8` | The USA `SetWorldHeat` script resolves the human AI heat interface. Both vtables `0x82065610` and `0x820662D0` use the same setter (+8) and getter (+4, reads +`0x1C`). The latter was observed in a live Circuit. The native update sets heat once for each initialized local driver in Quick Race. |
-| Auto Drive | `0x82367150` / `0x823671E8` | USA script registration `0x8235E8A8` names these ForceAIControl and ClearAIControl. They resolve the first or last local player via `0x82366FD8`, then use interface type `0x820E3D98`. The runtime queues the input to game update `0x823AFE20` and verifies the control flag through interface slot +`0x0C`. One local player only. |
+| Auto Drive | `0x820FF938`, `0x82366FD8` | ForceAIControl/ClearAIControl resolve the first or last local player via `0x82366FD8`, then query interface type `0x820E3D98`. The hook calls their stock setter on vtable `0x82066354` and reads its flag at +8. Constructor `0x820FF418` places that interface at AILocal +`0x8D0` and its IVehicle AI interface at +`0x50`. The runtime matches these interfaces against the live human car list. The split join screen stores XInput ports in FEDatabase +12/+13 through `0x822C4398`. Live presses engaged different cars on two DualSense controllers. |
 
 Speedbreaker physics mapping, configuration and live mass readback are recorded
 in [SPEEDBREAKER_MASS.md](SPEEDBREAKER_MASS.md). The contiguous 25/100/2 tuning

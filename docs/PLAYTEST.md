@@ -90,3 +90,29 @@ performance runs still need testing.
 A scripted headless Circuit loaded with Starting Heat 3 and read back 3.00
 from the stock world-heat interface. Police became eligible after the opening
 sequence. This verifies initialization for one local driver.
+
+## Six-car grid smoke test, 2026-11-10
+
+A scripted USA Circuit with five opponents loaded in the isolated ARM64
+development build. The live vehicle list contained one local driver and five
+distinct AI racers across multiple samples. The default 25% per-racer police
+budget reported six racers and raised the stock ceiling from 8 to 20.
+
+For the split-screen check, open Quick Race > Split Screen, join with a second
+controller, choose Circuit, and set Opponents to 4 and Difficulty to Hard.
+Verify both HUDs and four AI cars once the race starts. Repeat with 0 opponents
+and with another difficulty setting. Check Starting Heat and Race Police Off
+in a separate run so the grid and police settings can be diagnosed independently.
+
+The first desktop split-screen playtest verified both physical DualSense
+controllers and both human cars. No AI racers spawned. The user saw police
+start a pursuit with one local driver while the other was idle. A diagnostic
+run confirmed the Hard difficulty and five-slot opponent list had reached the
+loader. After enabling its stock AI creation loop for the split event, a second
+two-controller Circuit logged two human cars, four distinct AI racers, Hard
+difficulty, and a ground-cop ceiling of 8 → 20. Use `NFSMW_RACE_GRID_LOG=1`
+to log the selected slot count, loaded opponent list length, and difficulty.
+
+Each physical DualSense touchpad successfully handed a different split-screen
+car to the stock AI. The user confirmed Auto Drive in that Circuit. Test each
+controller's return to manual and try the toggle during free roam.

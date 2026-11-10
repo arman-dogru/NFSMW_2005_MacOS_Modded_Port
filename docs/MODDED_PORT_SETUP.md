@@ -152,10 +152,18 @@ cleanup rules. The launch override is `NFSMW_RACE_POLICE_MODE=off`.
 through 5 sets the initial heat through the original world-heat setter.
 Use `NFSMW_QUICK_RACE_STARTING_HEAT` to override it for one launch.
 
+On the USA disc, use **Quick Race > Custom Race > Circuit** or **Sprint** to
+select up to five AI opponents. In **Quick Race > Split Screen**, join with a
+second controller and choose Circuit or Sprint. Choose zero to four AI
+opponents and Easy, Medium or Hard from the stock race options. The six-car
+grid was verified in solo and split-screen Circuit, including a readback of
+Hard in split screen. Sprint still needs a live test.
+
 **Auto Drive** uses a DualSense touchpad click or F6 to switch control to the
-game's driver AI and back during a single-local-player competitive race.
-This can be used to repeat Quick Race benchmark runs. Split-screen toggling
-still needs its controller-to-player mapping verified.
+game's driver AI and back. The solo Circuit toggle was verified. The development
+build accepts each assigned controller's touchpad in split screen. Both
+controllers were verified in Circuit. The free-roam toggle is available and
+free-roam driving still needs a gameplay test.
 
 The modded launcher plays EA Trax during competitive races and restores the
 normal music rules afterward. Set `NFSMW_RACE_EA_TRAX_ONLY=0` before launch
