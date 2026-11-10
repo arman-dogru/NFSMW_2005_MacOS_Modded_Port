@@ -3,6 +3,9 @@
 #include "split_screen.h"
 
 #include <kernel/memory.h>
+#include <region/region.h>
+
+extern "C" PPC_FUNC(__imp__sub_822C8A68);
 
 namespace
 {
@@ -19,6 +22,25 @@ namespace
         uint32_t v = __atomic_load_n(reinterpret_cast<const uint32_t*>(host), __ATOMIC_RELAXED);
         return ByteSwap(v);
     }
+}
+
+PPC_FUNC(sub_822C8A68)
+{
+    constexpr uint32_t kPursuitCleanupReturn = 0x820EFC5C;
+    constexpr uint32_t kFirstGarageOffset = 0x10;
+    const unsigned player = ctx.r3.u32;
+    if (ctx.lr == kPursuitCleanupReturn && player < 2 && region::Current() == region::Release::Usa &&
+        game::split_screen::GameSaysSplit())
+    {
+        const uint32_t db = LoadBig32(base + game::split_screen::kDatabasePointer);
+        // A local guest can drive and have a pursuit without a persistent garage.
+        if (game::split_screen::PlausibleObject(db) && !LoadBig32(base + db + kFirstGarageOffset + player * 4))
+        {
+            fprintf(stderr, "[split] skipped garage cleanup for player %u (no garage)\n", player + 1);
+            return;
+        }
+    }
+    __imp__sub_822C8A68(ctx, base);
 }
 
 namespace game::split_screen
