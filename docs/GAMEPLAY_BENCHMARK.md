@@ -54,3 +54,16 @@ it as a frame-time benchmark. No new profiler/dependency is needed.
 Record the exact binary, settings, isolated profile/cache provenance, course,
 car, run order, time boundaries and thermals with each result. Logs, saves,
 caches and executables stay in ignored local build folders.
+
+## Six-car split-screen resolution comparison, 2026-11-10
+
+Two local players enabled Auto Drive on a six-car Circuit with Hard AI.
+Over 45-second windows beginning two seconds after both handoffs, the 2×
+internal-resolution run averaged 44.2 estimated fps and reached a 164.4 ms
+frame. The 1× run averaged 59.8 fps and reached a 73.2 ms frame. Command
+processor time fell from 18.2 to 9.3 ms per frame.
+
+The 2× session resized its output to 1920×1080 before the race, while the
+1× session kept its 2560×1440 output. The thermal samples also differed.
+The results support 1× as a practical split-screen setting on the tested
+M3. A matched baseline with gameplay mods disabled remains to be measured.
